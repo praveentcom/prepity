@@ -1,0 +1,40 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id             Int           @id @default(autoincrement())
+  name           String?
+  email          String        @unique
+  emailVerified  Boolean       @default(false)
+  password       String?
+  image          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  signupTokens   SignupToken[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+model SignupToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String   @unique
+  expires   DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PasswordResetToken {
+    id        Int      @id @default(autoincrement())
+    token     String   @unique
+    userId    Int
+    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    expires   DateTime
+    createdAt DateTime @default(now())
+
+    @@index([userId])
+}
