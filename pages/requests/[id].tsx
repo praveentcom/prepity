@@ -184,7 +184,7 @@ function Content({ initialRequest }: Props) {
 
     return (
         <div className="flex flex-col gap-3">
-            <div className="flex flex-row md:flex-col items-center md:justify-between gap-2">
+            <div className="flex flex-col md:flex-row items-center md:justify-between gap-2">
                 <h1 className="text-lg font-medium flex items-center gap-2">
                     {initialRequest.query}
                     <button onClick={toggleStarStatus} className="focus:outline-none">
@@ -199,8 +199,8 @@ function Content({ initialRequest }: Props) {
                 )}
             </div>
             <hr />
-            <div className='flex flex-row md:flex-col gap-2 w-max'>
-                <div className='flex flex-col gap-2 w-max'>
+            <div className='flex flex-col md:flex-row gap-2 w-max'>
+                <div className='flex flex-row gap-2 w-max'>
                     <Badge variant="outline" className='flex items-center gap-1'>
                         <LibraryBig className='size-3' />
                         {CATEGORY_LIST.find(category => 
@@ -212,7 +212,7 @@ function Content({ initialRequest }: Props) {
                         {initialRequest.difficulty.charAt(0).toUpperCase() + initialRequest.difficulty.slice(1).toLowerCase()}
                     </Badge>
                 </div>
-                <div className='flex flex-col gap-2 w-max'>
+                <div className='flex flex-row gap-2 w-max'>
                     <Badge variant="outline" className='flex items-center gap-1'>
                         <CalendarCheck2 className='size-3' />
                         Generated on {moment(initialRequest.createdAt).format("DD MMM, hh:mm a")}
