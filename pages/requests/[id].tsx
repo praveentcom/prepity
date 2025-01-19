@@ -4,7 +4,7 @@ import { AuthenticatedLayout } from '@/components/layout/authenticated-layout';
 import { Request, Question, RequestStatus, QuestionType, AnswerType } from '@prisma/client';
 import { useRouter } from 'next/router';
 import { Button } from '@/components/ui/button';
-import { CheckIcon, HourglassIcon, LightbulbIcon } from 'lucide-react';
+import { CheckIcon, HourglassIcon, LightbulbIcon, StarIcon, Loader2, LibraryBig, Brain, CalendarCheck2, Hourglass, ChartBar } from 'lucide-react';
 import _ from 'lodash';
 import {
 	Dialog,
@@ -18,6 +18,9 @@ import Latex from 'react-latex-next';
 import Markdown from 'react-markdown';
 import { CATEGORY_LIST } from '@/lib/client/constants';
 import { toast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import moment from 'moment';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface Props {
 	initialRequest: Request;
@@ -104,6 +107,8 @@ function Content({ initialRequest }: Props) {
     const [request, setRequest] = useState(initialRequest);
 	const [questions, setQuestions] = useState<Question[]>([]);
 	const router = useRouter();
+	const [loadingQuestionId, setLoadingQuestionId] = useState<number | null>(null);
+    const [loadingAnswerId, setLoadingAnswerId] = useState<number | null>(null);
 
     const fetchQuestions = async (requestId: number | string) => {
         try {
@@ -159,231 +164,287 @@ function Content({ initialRequest }: Props) {
 		}
 	}, [router.query]);
 
+    const toggleStarStatus = async () => {
+        try {
+            const res = await fetch('/api/requests/star', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ requestSlug: request.requestSlug }),
+            });
+            if (res.ok) {
+                const updatedRequest = await res.json();
+                setRequest(updatedRequest);
+            }
+        } catch (error) {
+            console.error('Error toggling star status:', error);
+        }
+    };
+
     return (
-        <div className="flex flex-col gap-2">
-            <div className="flex flex-col">
-                <div className="flex items-center justify-between">
-                    <h1 className="text-lg font-medium">{initialRequest.query}</h1>
-                    {(request.status === RequestStatus.PROCESSING) && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            Generating questions, we're updating them as it's getting ready...
-                        </span>
-                    )}
-                </div>
-                <p className="text-sm text-muted-foreground">
-                    Category: {CATEGORY_LIST.find(category => 
+        <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+                <h1 className="text-lg font-medium flex items-center gap-2">
+                    {initialRequest.query}
+                    <button onClick={toggleStarStatus} className="focus:outline-none">
+                        <StarIcon className={`size-4 ${request.isStarred ? "text-yellow-600 fill-yellow-500" : "text-muted-foreground"}`} />
+                    </button>
+                </h1>
+                {(request.status === RequestStatus.PROCESSING) && (
+                    <Badge variant="default" className='flex text-xs items-center gap-1 animate-pulse'>
+                        <Hourglass className='size-3' />
+                        Generating questions ({questions.length}/{initialRequest.initQuestionsCount})...
+                    </Badge>
+                )}
+            </div>
+            <hr />
+            <div className='flex flex-row gap-2 w-max'>
+                <Badge variant="outline" className='flex items-center gap-1'>
+                    <LibraryBig className='size-3' />
+                    {CATEGORY_LIST.find(category => 
                         category.category === initialRequest.category
                     )?.categoryName}
-                </p>
-                {(() => {
-                    switch (initialRequest.difficulty) {
-                        case 'EASY':
-                            return (
-                                <p className="text-sm text-muted-foreground">
-                                    Difficulty: Easy
-                                </p>
-                            );
-                        case 'MEDIUM':
-                            return (
-                                <p className="text-sm text-muted-foreground">
-                                    Difficulty: Medium
-                                </p>
-                            );
-                        case 'HARD':
-                            return (
-                                <p className="text-sm text-muted-foreground">
-                                    Difficulty: Hard
-                                </p>
-                            );
-                        default:
-                            return (
-                                <p className="text-sm text-muted-foreground">
-                                    Difficulty: {initialRequest.difficulty}
-                                </p>
-                            );
-                    }
-                })()}
+                </Badge>
+                <Badge variant="outline" className='flex items-center gap-1'>
+                    <Brain className='size-3' />
+                    {initialRequest.difficulty.charAt(0).toUpperCase() + initialRequest.difficulty.slice(1).toLowerCase()}
+                </Badge>
+                <Badge variant="outline" className='flex items-center gap-1'>
+                    <CalendarCheck2 className='size-3' />
+                    Generated on {moment(initialRequest.createdAt).format("DD MMM, hh:mm a")}
+                </Badge>
             </div>
-            <hr className="my-3" />
-            <div className="grid grid-cols-1 gap-6">
-                {questions.map((question, index) => (
-                    <div
-                        key={`question-${question.id}`}
-                        className={`bg-white shadow sm:rounded-lg transition-opacity duration-500 ease-in-out opacity-100`}>
-                        <div className="px-4 pt-5 pb-6 sm:px-6 flex flex-col gap-5">
-                            <div className='flex flex-col gap-0.5'>
-                                <h4 className="text-sm font-medium text-muted-foreground">
-                                    Question {index + 1}
-                                </h4>
-                                <QuestionRenderer text={question.question} type={question.questionType} />
-                            </div>
-                            <div className="space-y-4">
-                                {[1, 2, 3, 4].map((optionNum) => {
-                                    let buttonClass = 'w-full text-left px-4 py-3 border rounded-lg';
-
-                                    if (question.isAnswered) {
-                                        buttonClass += ' cursor-not-allowed';
-                                    } else {
-                                        buttonClass += ' hover:bg-gray-50';
-                                    }
-
-                                    if (question.isAnswered) {
-                                        if (optionNum === question.correctOption) {
-                                            buttonClass += ' answer-correct';
-                                        } else if (question.userAnswer === optionNum) {
-                                            buttonClass += ' answer-incorrect';
-                                        }
-                                    } else {
-                                        if (question.userAnswer === optionNum) {
-                                            buttonClass += ' border-blue-500 bg-blue-50';
-                                        } else {
-                                            buttonClass += ' border-gray-300';
-                                        }
-                                    }
-
-                                    const options = [
-                                        question.option1,
-                                        question.option2,
-                                        question.option3,
-                                        question.option4,
-                                    ];
-
-                                    return (
-                                        <button
-                                            key={optionNum}
-                                            className={buttonClass}
-                                            disabled={question.isAnswered}
-                                            onClick={async () => {
-                                                if (!question.isAnswered) {
-                                                    try {
-                                                        await fetch(
-                                                            '/api/questions/mark-answer',
-                                                            {
-                                                                method: 'POST',
-                                                                headers: {
-                                                                    'Content-Type':
-                                                                        'application/json',
-                                                                },
-                                                                body: JSON.stringify(
-                                                                    {
-                                                                        questionId:
-                                                                            question.id,
-                                                                        answerId:
-                                                                            optionNum,
-                                                                    }
-                                                                ),
-                                                            }
-                                                        );
-                                                        // Refresh questions after marking answer
-                                                        await fetchQuestions(initialRequest.id);
-                                                    } catch (error) {
-                                                        console.error(
-                                                            'Error marking answer:',
-                                                            error
-                                                        );
-                                                    }
-                                                }
-                                            }}
-                                        >
-                                            <QuestionRenderer text={options[optionNum - 1]} type={question.answerType} />
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                            <div className='flex gap-3'>
-                                {
-                                    !question.isAnswered ? (
-                                        <Button
-                                            variant='outline'
-                                            className='w-max'
-                                            disabled={_.isNil(question.userAnswer)}
-                                            onClick={async () => {
-                                                try {
-                                                    const res = await fetch('/api/questions/submit-answer', {
-                                                        method: 'POST',
-                                                        headers: {
-                                                            'Content-Type': 'application/json',
-                                                        },
-                                                        body: JSON.stringify({
-                                                            questionId: question.id
-                                                        }),
-                                                    });
-                                                    if (res.ok) {
-                                                        await fetchQuestions(initialRequest.id);
-
-                                                        const { pendingQuestionsForAnswersCount } = await res.json();
-
-                                                        if (pendingQuestionsForAnswersCount === 0) {
-                                                            toast({
-                                                                title: "All questions answered 🎉",
-                                                                description: "You've answered all the questions. You can now see the answers and explanations.",
-                                                                variant: "default",
-                                                                duration: 10000
-                                                            })
-                                                        }
-                                                    }
-                                                } catch (error) {
-                                                    console.error('Error submitting answer:', error);
-                                                }
-                                            }}
-                                        >
-                                            {question.userAnswer ? <CheckIcon className='size-4' /> : <HourglassIcon className='size-4' />}
-                                            {question.userAnswer ? 'Submit and show answer' : 'Select an answer to submit'}
-                                        </Button> ) : null
-                                }
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <Button variant="secondary" className="w-max">
-                                            <LightbulbIcon className="size-4" />
-                                            Show hint
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                        <DialogHeader>
-                                            <DialogTitle>
-                                                <LightbulbIcon className="size-5" />
-                                            </DialogTitle>
-                                        </DialogHeader>
-                                        <p className='antialiased'>{question.hint}</p>
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-
-                            {question.isAnswered && (
-                                <div className="text-muted-foreground grid gap-4">
-                                    <hr />
+            <hr />
+            <div className='grid grid-cols-3 gap-4'>
+                <div className='col-span-3 sm:col-span-2'>
+                    <div className="grid grid-cols-1 gap-6">
+                        {questions.map((question, index) => (
+                            <Card
+                                key={`question-${question.id}`}
+                                className={`transition-opacity duration-500 ease-in-out opacity-100`}>
+                                <CardHeader>
                                     <div className='flex flex-col gap-0.5'>
-                                        <h4 className="text-sm font-medium">Explanation</h4>
-                                        <QuestionRenderer text={question.explanation || 'No explanation provided'} type={question.answerType} />
+                                        <h4 className="text-sm font-medium text-muted-foreground">
+                                            Question {index + 1}
+                                        </h4>
+                                        <QuestionRenderer text={question.question} type={question.questionType} />
                                     </div>
-                                </div>
-                            )}
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="flex flex-col gap-5">
+                                        <div className="space-y-4">
+                                            {[1, 2, 3, 4].map((optionNum) => {
+                                                let buttonClass = 'w-full text-left px-4 py-3 border rounded-lg';
 
-                        </div>
+                                                if (question.isAnswered) {
+                                                    buttonClass += ' cursor-not-allowed';
+                                                } else {
+                                                    buttonClass += ' hover:bg-gray-50';
+                                                }
+
+                                                if (question.isAnswered) {
+                                                    if (optionNum === question.correctOption) {
+                                                        buttonClass += ' answer-correct';
+                                                    } else if (question.userAnswer === optionNum) {
+                                                        buttonClass += ' answer-incorrect';
+                                                    }
+                                                } else {
+                                                    if (question.userAnswer === optionNum) {
+                                                        buttonClass += ' border-blue-500 bg-blue-50';
+                                                    } else {
+                                                        buttonClass += ' border-gray-300';
+                                                    }
+                                                }
+
+                                                const options = [
+                                                    question.option1,
+                                                    question.option2,
+                                                    question.option3,
+                                                    question.option4,
+                                                ];
+
+                                                return (
+                                                    <button
+                                                        key={optionNum}
+                                                        className={buttonClass}
+                                                        disabled={question.isAnswered || loadingQuestionId === question.id}
+                                                        onClick={async () => {
+                                                            if (!question.isAnswered) {
+                                                                setLoadingQuestionId(question.id);
+                                                                setLoadingAnswerId(optionNum);
+                                                                try {
+                                                                    await fetch(
+                                                                        '/api/questions/mark-answer',
+                                                                        {
+                                                                            method: 'POST',
+                                                                            headers: {
+                                                                                'Content-Type':
+                                                                                    'application/json',
+                                                                            },
+                                                                            body: JSON.stringify(
+                                                                                {
+                                                                                    questionId:
+                                                                                        question.id,
+                                                                                    answerId:
+                                                                                        optionNum,
+                                                                                }
+                                                                            ),
+                                                                        }
+                                                                    );
+
+                                                                    await fetchQuestions(initialRequest.id);
+                                                                } catch (error) {
+                                                                    console.error(
+                                                                        'Error marking answer:',
+                                                                        error
+                                                                    );
+                                                                } finally {
+                                                                    setLoadingQuestionId(null);
+                                                                    setLoadingAnswerId(null);
+                                                                }
+                                                            }
+                                                        }}
+                                                    >
+                                                        {loadingAnswerId === optionNum && loadingQuestionId === question.id ? (
+                                                            <Loader2 className="size-4 my-1 animate-spin text-muted-foreground" />
+                                                        ) : <QuestionRenderer text={options[optionNum - 1]} type={question.answerType} />}
+                                                        
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                        <div className='flex gap-3 md:flex-row flex-col'>
+                                            {
+                                                !question.isAnswered ? (
+                                                    <Button
+                                                        variant='outline'
+                                                        className='w-max'
+                                                        disabled={_.isNil(question.userAnswer)}
+                                                        onClick={async () => {
+                                                            try {
+                                                                const res = await fetch('/api/questions/submit-answer', {
+                                                                    method: 'POST',
+                                                                    headers: {
+                                                                        'Content-Type': 'application/json',
+                                                                    },
+                                                                    body: JSON.stringify({
+                                                                        questionId: question.id
+                                                                    }),
+                                                                });
+                                                                if (res.ok) {
+                                                                    await fetchQuestions(initialRequest.id);
+
+                                                                    const { pendingQuestionsForAnswersCount } = await res.json();
+
+                                                                    if (pendingQuestionsForAnswersCount === 0) {
+                                                                        toast({
+                                                                            title: "All questions answered 🎉",
+                                                                            description: "You've answered all the questions. You can now see the answers and explanations.",
+                                                                            variant: "default",
+                                                                            duration: 10000
+                                                                        })
+                                                                    }
+                                                                }
+                                                            } catch (error) {
+                                                                console.error('Error submitting answer:', error);
+                                                            }
+                                                        }}
+                                                    >
+                                                        {question.userAnswer ? <CheckIcon className='size-4' /> : <HourglassIcon className='size-4' />}
+                                                        {question.userAnswer ? 'Submit and show answer' : 'Select an answer to submit'}
+                                                    </Button> ) : null
+                                            }
+                                            <Dialog>
+                                                <DialogTrigger asChild>
+                                                    <Button variant="secondary" className="w-max">
+                                                        <LightbulbIcon className="size-4" />
+                                                        Show hint
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent>
+                                                    <DialogHeader>
+                                                        <DialogTitle>
+                                                            <LightbulbIcon className="size-5" />
+                                                        </DialogTitle>
+                                                    </DialogHeader>
+                                                    <p className='antialiased'>{question.hint}</p>
+                                                </DialogContent>
+                                            </Dialog>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                                {question.isAnswered && (
+                                    <CardFooter>
+                                        <div className="text-muted-foreground grid gap-4">
+                                            <hr />
+                                            <div className='flex flex-col gap-0.5'>
+                                                <h4 className="text-sm font-medium">Explanation</h4>
+                                                <QuestionRenderer small text={question.explanation || 'No explanation provided'} type={question.answerType} />
+                                            </div>
+                                        </div>
+                                    </CardFooter>
+                                )}
+                            </Card>
+                        ))}
+
+                        {(request.status === RequestStatus.PROCESSING) && (
+                            <QuestionSkeleton key={`skeleton-${initialRequest.id}`} />
+                        )}
                     </div>
-                ))}
-
-                {/* Show skeleton loaders while processing */}
-                {(request.status === RequestStatus.PROCESSING) && (
-                    <QuestionSkeleton key={`skeleton-${initialRequest.id}`} />
-                )}
+                </div>
+                <div className='col-span-1'>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>
+                                Question Set Summary
+                            </CardTitle>
+                            <CardDescription>
+                                Summary will be updated as you answer.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {
+                                questions.length > 0 ? (
+                                    <div className='flex flex-col gap-3'>
+                                <div className='flex flex-col gap-0.5'>
+                                    <div className='flex flex-row gap-2'>
+                                        <ChartBar className='size-4' />
+                                        <p className='text-sm font-medium'>Attempt Results</p>
+                                    </div>
+                                    <div className='flex flex-col'>
+                                        <p className='text-xs text-muted-foreground'>Total Questions: {questions.length}</p>
+                                        <p className='text-xs text-muted-foreground'>Answered: {questions.filter(question => question.isAnswered).length} ({Math.round(questions.filter(question => question.isAnswered).length / questions.length * 100)}%)</p>
+                                        <p className='text-xs text-muted-foreground'>Correct: {questions.filter(question => question.isAnswered && question.correctOption === question.userAnswer).length} ({Math.round(questions.filter(question => question.isAnswered && question.correctOption === question.userAnswer).length / questions.length * 100)}%)</p>
+                                    </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className='flex flex-col gap-3'>
+                                        <p className='text-xs italic text-muted-foreground'>No questions generated yet.</p>
+                                    </div>
+                                )
+                            }
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     )
 }
 
-function QuestionRenderer({ text, type }: { text: string, type: QuestionType | AnswerType }) {
+function QuestionRenderer({ text, type, small }: { text: string, type: QuestionType | AnswerType, small?: boolean }) {
     if (type === 'LATEX') {
         return <Latex>{text}</Latex>
     } else if (type === 'CODE') {
-        return <code>{text}</code>
+        return <code className={small ? 'text-sm' : ''}>{text}</code>
     } else if (type === 'PLAINTEXT') {
         if (text.includes('`') || text.includes('*')) {
             return <div className='prose'>
-                <Markdown>{text}</Markdown>
+                <Markdown className={small ? 'text-sm' : ''}>{text}</Markdown>
             </div>
         } else {
-            return <p>{text}</p>
+            return <p className={small ? 'text-sm' : ''}>{text}</p>
         }
     }
 }

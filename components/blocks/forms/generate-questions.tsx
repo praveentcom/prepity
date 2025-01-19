@@ -22,7 +22,7 @@ const generateQuestionsSchema = z.object({
         required_error: "Please enter a focus area",
     }).min(10, {
         message: "Focus area must be at least 10 characters long",
-    }),
+    }).max(200, { message: "Focus area must not exceed 200 characters" }),
     difficulty: z.enum(['EASY', 'MEDIUM', 'HARD'], {
         required_error: "Please select a difficulty level",
     }).default('MEDIUM'),
@@ -154,7 +154,7 @@ export default function GenerateQuestionsForm() {
                                     </Select>
                                 </FormControl>
                                 <FormDescription>
-                                    Choose how many questions to generate initially.
+                                    Choose how many questions to generate.
                                 </FormDescription>
                                 <FormMessage />
                             </FormItem>

@@ -19,7 +19,7 @@ export function Content() {
     return (
         <div className='flex flex-col gap-2'>
             <div className='flex flex-col'>
-                <h1 className='text-lg font-medium'>Hey, {user?.name}.</h1>
+                <h1 className='text-md font-medium'>Hey, {user?.name}.</h1>
                 <p className='text-sm text-muted-foreground'>
                     Good {new Date().getHours() > 12 ? 'afternoon' : 'morning'}, let's learn something new today.
                 </p>

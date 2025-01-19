@@ -43,7 +43,7 @@ export async function generate({user, request, currentQuestionsCount}: {user: Pa
             schemaName: 'question',
             schemaDescription: 'A high-quality question with 4 options, correct answer, explanation, and hint. All text fields support markdown formatting.',
             output: 'array',
-            prompt: `Generate ${initQuestionsCount - currentQuestionsCount} number of ${difficulty.toLowerCase()} difficulty questions about '${query}' for the category '${category}'.
+            prompt: `Generate ${initQuestionsCount - currentQuestionsCount} number of ${difficulty.toLowerCase()} difficulty questions about '${query.toLowerCase().replaceAll('questions about ', '')}' for the category '${category}'.
 
 Instructions for generating high-quality questions:
 ${++instructionsCount}. Use markdown formatting to improve readability:
@@ -76,8 +76,8 @@ ${++instructionsCount}. For any kind of markdown use, use the type as PLAINTEXT
                     ...element,
                     userId: user.id,
                     requestId: request.id,
-                    questionType: element.questionType as QuestionType,
-                    answerType: element.answerType as AnswerType,
+                    questionType: element.question.includes('$') ? QuestionType.LATEX : element.questionType as QuestionType,
+                    answerType: element.option1.includes('$') || element.option2.includes('$') || element.option3.includes('$') || element.option4.includes('$') ? AnswerType.LATEX : element.answerType as AnswerType,
                 },
             });
             questions.push(question);
