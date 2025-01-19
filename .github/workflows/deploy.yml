@@ -30,7 +30,7 @@
 
        - name: Copy files to VM
          run: |
-           sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -r ./* ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_IP }}:/var/www/prepity
+           sshpass -p "${{ secrets.SSH_PASSWORD }}" rsync -avz --delete --exclude-from='.rsyncignore' -e "ssh -o StrictHostKeyChecking=no" .next/ public/ package.json yarn.lock ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_IP }}:/var/www/prepity
 
        - name: Restart PM2 process
          run: |
