@@ -1,0 +1,37 @@
+   name: Deploy to VM
+
+   on:
+     push:
+       branches:
+         - main
+
+   jobs:
+     deploy:
+       runs-on: ubuntu-latest
+       environment: production
+
+       steps:
+       - name: Checkout code
+         uses: actions/checkout@v2
+
+       - name: Install sshpass
+         run: sudo apt-get install -y sshpass
+
+       - name: Install Node.js
+         uses: actions/setup-node@v2
+         with:
+           node-version: '20'
+
+       - name: Install dependencies
+         run: yarn install
+
+       - name: Build the project
+         run: npm run build
+
+       - name: Copy files to VM
+         run: |
+           sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -r ./* ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_IP }}:/var/www/prepity
+
+       - name: Restart PM2 process
+         run: |
+           sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_IP }} 'pm2 restart prepity'
