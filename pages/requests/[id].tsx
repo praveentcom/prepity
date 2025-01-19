@@ -314,13 +314,13 @@ function Content({ initialRequest }: Props) {
                                                         const { pendingQuestionsForAnswersCount } = await res.json();
 
                                                         if (pendingQuestionsForAnswersCount === 0) {
-
+                                                            toast({
+                                                                title: "All questions answered 🎉",
+                                                                description: "You've answered all the questions. You can now see the answers and explanations.",
+                                                                variant: "default",
+                                                                duration: 10000
+                                                            })
                                                         }
-
-                                                        toast({
-                                                            title: "Scheduled: Catch up",
-                                                            description: "Friday, February 10, 2023 at 5:57 PM",
-                                                        })
                                                     }
                                                 } catch (error) {
                                                     console.error('Error submitting answer:', error);

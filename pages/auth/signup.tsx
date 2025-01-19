@@ -13,6 +13,7 @@ import { cn } from "@/lib/client/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import jwt from "jsonwebtoken";
 import { getSession } from "@/lib/server/auth";
+import { toast } from "@/hooks/use-toast";
 
 const signupSchema = z.object({
   name: z.string()
@@ -47,6 +48,14 @@ export default function SignupPage() {
     
     try {
       await axios.post("/api/auth/signup", data);
+
+      toast({
+        title: "Verify your email",
+        description: "We've sent you an email to verify your account. Please check your inbox and click the link to verify your account.",
+        variant: "default",
+        duration: 10000
+      });
+
       router.push("/auth/login");
     } catch (err: any) {
       form.setError("root", { 
