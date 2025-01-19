@@ -16,14 +16,15 @@ export default function ConfirmEmailPage() {
 
     const verifyEmail = async () => {
       try {
-        const response = await axios.post('/api/auth/verify-email', { token });
+        await axios.post('/api/auth/verify-email', { token });
+
         setStatus('success');
         setMessage('Redirecting...');
         
-        // Redirect to login after 5 seconds
+        // Redirect to login after 3 seconds
         setTimeout(() => {
           router.push('/auth/login');
-        }, 5000);
+        }, 3000);
       } catch (error: any) {
         setStatus('error');
         setMessage(error.response?.data?.message || 'Failed to verify email. Please try again.');
@@ -34,7 +35,7 @@ export default function ConfirmEmailPage() {
   }, [token, router]);
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
+    <div className="flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
       <div className="flex w-full max-w-sm flex-col gap-6">
         <a href="/" className="flex items-center self-center font-semibold">
           <BookOpenCheckIcon className="size-5" />
@@ -45,7 +46,7 @@ export default function ConfirmEmailPage() {
             <CardTitle className="text-lg">Email Verification</CardTitle>
             <CardDescription>
               {status === 'loading' && 'Verifying your email address'}
-              {status === 'success' && 'Email Verified Successfully'}
+              {status === 'success' && 'Verified Successfully'}
               {status === 'error' && 'Verification Failed'}
             </CardDescription>
           </CardHeader>

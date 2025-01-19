@@ -18,6 +18,9 @@ model User {
   updatedAt      DateTime      @updatedAt
   signupTokens   SignupToken[]
   passwordResetTokens PasswordResetToken[]
+  requests       Request[]
+  questions      Question[]
+  preference     UserPreference?
 }
 
 model SignupToken {
@@ -37,4 +40,92 @@ model PasswordResetToken {
     createdAt DateTime @default(now())
 
     @@index([userId])
+}
+
+enum RequestStatus {
+  PENDING
+  PROCESSING
+  PARTIALLY_CREATED
+  CREATED
+  FAILED
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum Visibility {
+  PRIVATE
+  PUBLIC
+}
+
+enum QuestionType {
+  PLAINTEXT
+  LATEX
+  CODE
+}
+
+enum AnswerType {
+  PLAINTEXT
+  LATEX
+  CODE
+}
+
+model Request {
+  id                 Int           @id @default(autoincrement())
+  userId             Int
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category           String
+  query              String       @db.Text
+  status             RequestStatus @default(PENDING)
+  difficulty         Difficulty    @default(MEDIUM)
+  initQuestionsCount Int          @default(10)
+  questions          Question[]
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  requestSlug        String       @unique
+  isStarred          Boolean       @default(false)
+  visibility         Visibility    @default(PRIVATE)
+
+  @@index([userId])
+}
+
+model Question {
+  id               Int      @id @default(autoincrement())
+  question         String   @db.Text
+  option1          String
+  option2          String
+  option3          String
+  option4          String
+  correctOption    Int      @db.SmallInt // 1-4 representing which option is correct
+  explanation      String?  @db.Text
+  hint            String?  @db.Text
+  requestId       Int
+  request         Request   @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  userId          Int
+  user            User     @relation(fields: [userId], references: [id])
+  isStarred       Boolean  @default(false)
+  isAnswered      Boolean  @default(false)
+  userAnswer      Int?     @db.SmallInt // 1-4 representing user's answer
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  answeredAt      DateTime?
+  questionType    QuestionType
+  answerType      AnswerType
+
+  @@index([userId])
+  @@index([requestId])
+}
+
+model UserPreference {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  llmModel  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }

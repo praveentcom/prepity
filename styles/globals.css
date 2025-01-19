@@ -2,24 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -82,5 +64,18 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .answer-correct {
+    background-color: #d4edda; /* Light green */
+    border-color: #c3e6cb; /* Green border */
+    color: #155724; /* Dark green text */
+  }
+  .answer-incorrect {
+    background-color: #f8d7da; /* Light red */
+    border-color: #f5c6cb; /* Red border */
+    color: #721c24; /* Dark red text */
   }
 }

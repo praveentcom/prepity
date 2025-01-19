@@ -67,6 +67,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
+    await prisma.userPreference.create({
+        data: {
+          userId: user.id,
+        },
+    });
+
     await sendVerificationEmail({ user });
 
     res.status(201).json({ 

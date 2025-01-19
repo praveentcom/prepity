@@ -12,6 +12,7 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 import { cn } from "@/lib/client/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getSession } from "@/lib/server/auth";
 
 const resetPasswordSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -54,7 +55,7 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
+    <div className="flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
       <div className="flex w-full max-w-sm flex-col gap-6">
         <a href="/" className="flex items-center self-center font-semibold">
           <BookOpenCheckIcon className="size-5" />
@@ -144,13 +145,17 @@ export async function getServerSideProps(context: any) {
 
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!);
-      return {
-        redirect: {
-          destination: "/",
-          permanent: false,
-        },
-      };
+        const session = await getSession(context.req);
+        if (session) {
+          return {
+            redirect: {
+              destination: "/",
+              permanent: false,
+            },
+          };
+        } else {
+          throw new Error("User session invalid");
+        }
     } catch (err) {
       // Clear invalid token
       context.res.setHeader(

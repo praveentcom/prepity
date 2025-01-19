@@ -1,77 +1,52 @@
-import jwt from "jsonwebtoken";
-import { Button } from "@/components/ui/button";
-import { useRouter } from "next/router";
-import { logout } from "@/lib/client/auth";
-import { User } from "@prisma/client";
+'use client'
 
-export default function Home({ user }: { user: User | null }) {
-  const router = useRouter();
-  
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (err) {
-      console.error('Error logging out:', err);
-    }
-  };
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import GenerateQuestionsForm from '@/components/blocks/forms/generate-questions'
+import { useAuth } from '@/providers/auth-provider'
+import { AuthenticatedLayout } from '@/components/layout/authenticated-layout'
 
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="flex flex-col items-center gap-4">
-          <h1 className="text-2xl font-bold mb-4">Welcome to the App</h1>
-          <div className="flex gap-4">
-            <Button onClick={() => router.push("/auth/login")}>
-              Log in
-            </Button>
-            <Button variant="outline" onClick={() => router.push("/auth/signup")}>
-              Sign up
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+export default function Home() {
   return (
-    <div className="p-4">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold">Welcome, {user.name}!</h1>
-        <Button variant="outline" onClick={handleLogout}>
-          Log out
-        </Button>
-      </div>
-      <p className="text-gray-600">This is the application homepage.</p>
-    </div>
-  );
+    <AuthenticatedLayout>
+        <Content />
+    </AuthenticatedLayout>
+  )
 }
 
-export async function getServerSideProps(context: any) {
-  const { req } = context;
-  const token = req.cookies.token;
+export function Content() {
+    const { user } = useAuth()
 
-  if (!token) {
-    return {
-      redirect: {
-        destination: "/auth/login",
-        permanent: false,
-      },
-    };
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as User;
-    return {
-      props: {
-        user: decoded,
-      },
-    };
-  } catch (error) {
-    return {
-      redirect: {
-        destination: "/auth/login",
-        permanent: false,
-      },
-    };
-  }
+    return (
+        <div className='flex flex-col gap-2'>
+            <div className='flex flex-col'>
+                <h1 className='text-lg font-medium'>Hey, {user?.name}.</h1>
+                <p className='text-sm text-muted-foreground'>
+                    Good {new Date().getHours() > 12 ? 'afternoon' : 'morning'}, let's learn something new today.
+                </p>
+            </div>
+            <hr className='my-3' />
+            <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+                <div className='flex flex-col'>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>
+                                Generate questions to practice
+                            </CardTitle>
+                            <CardDescription>
+                                Choose your category and specify your focus area to generate practice questions.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <GenerateQuestionsForm />
+                        </CardContent>
+                        <CardFooter>
+                            <p className='text-xs text-muted-foreground'>
+                                Questions are generated based on available information from the internet and LLM model ability. Excercise caution when using questions generated and report any issues. Questions generated will be saved in your library.
+                            </p>
+                        </CardFooter>
+                    </Card>
+                </div>
+            </div>
+        </div>
+    )
 }
