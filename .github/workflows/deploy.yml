@@ -30,7 +30,7 @@
 
        - name: Copy files to VM
          run: |
-           sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -r ./* ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_IP }}:/var/www/prepity
+           sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -r ./* ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_IP }}:/var/www/prepity -o "StrictHostKeyChecking=accept-new"
 
        - name: Restart PM2 process
          run: |
