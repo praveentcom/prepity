@@ -21,7 +21,6 @@ export default function ConfirmEmailPage() {
         setStatus('success');
         setMessage('Redirecting...');
         
-        // Redirect to login after 3 seconds
         setTimeout(() => {
           router.push('/auth/login');
         }, 3000);

@@ -2,8 +2,6 @@ import { BookOpenCheckIcon } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import jwt from "jsonwebtoken";
-
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,6 +11,7 @@ import { useRouter } from "next/router";
 import { cn } from "@/lib/client/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSession } from "@/lib/server/auth/index";
+import { toast } from "@/hooks/use-toast";
 
 const newPasswordSchema = z.object({
   password: z.string()
@@ -50,6 +49,14 @@ export default function NewPasswordPage() {
         password: data.password,
         token: token,
       });
+
+      toast({
+        title: "✅ Success, password updated",
+        description: "Your password has been updated successfully. You can now login with your new password.",
+        variant: "default",
+        duration: 10000
+      });
+
       router.push("/auth/login");
     } catch (err: any) {
       form.setError("root", { 

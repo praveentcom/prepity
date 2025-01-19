@@ -4,7 +4,7 @@ import { AuthenticatedLayout } from '@/components/layout/authenticated-layout';
 import { Request, Question, RequestStatus, QuestionType, AnswerType } from '@prisma/client';
 import { useRouter } from 'next/router';
 import { Button } from '@/components/ui/button';
-import { CheckIcon, HourglassIcon, LightbulbIcon, StarIcon, Loader2, LibraryBig, Brain, CalendarCheck2, Hourglass, ChartBar } from 'lucide-react';
+import { CheckIcon, HourglassIcon, LightbulbIcon, StarIcon, Loader2, LibraryBig, Brain, CalendarCheck2, Hourglass, ChartBar, CloudAlert } from 'lucide-react';
 import _ from 'lodash';
 import {
 	Dialog,
@@ -109,6 +109,7 @@ function Content({ initialRequest }: Props) {
 	const router = useRouter();
 	const [loadingQuestionId, setLoadingQuestionId] = useState<number | null>(null);
     const [loadingAnswerId, setLoadingAnswerId] = useState<number | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState<{ [key: number]: boolean }>({});
 
     const fetchQuestions = async (requestId: number | string) => {
         try {
@@ -128,10 +129,8 @@ function Content({ initialRequest }: Props) {
 		const pollRequestAndQuestions = async () => {
 			if (request.status === RequestStatus.PROCESSING && pollingAttempts < MAX_POLLING_ATTEMPTS) {
 				try {
-					// First, fetch any new questions
 					await fetchQuestions(initialRequest.id);
 
-					// Then check request status
 					const res = await fetch(
 						`/api/requests/read?id=${initialRequest.id}`
 					);
@@ -154,8 +153,7 @@ function Content({ initialRequest }: Props) {
 			}
 		};
 
-		// Start polling if request is in PROCESSING state
-		if (
+        if (
 			initialRequest.status === RequestStatus.PROCESSING
 		) {
 			pollRequestAndQuestions();
@@ -176,6 +174,13 @@ function Content({ initialRequest }: Props) {
             if (res.ok) {
                 const updatedRequest = await res.json();
                 setRequest(updatedRequest);
+
+                toast({
+                    title: `✅ Question set ${updatedRequest.isStarred ? 'starred' : 'unstarred'}`,
+                    description: `Request completed successfully.`,
+                    variant: 'default',
+                    duration: 5000,
+                });
             }
         } catch (error) {
             console.error('Error toggling star status:', error);
@@ -185,7 +190,7 @@ function Content({ initialRequest }: Props) {
     return (
         <div className="flex flex-col gap-3">
             <div className="flex flex-col md:flex-row items-center md:justify-between gap-2">
-                <h1 className="text-lg font-medium flex items-center gap-2">
+                <h1 className="text-lg font-medium flex items-center gap-2 w-full md:w-auto">
                     {initialRequest.query}
                     <button onClick={toggleStarStatus} className="focus:outline-none">
                         <StarIcon className={`size-4 ${request.isStarred ? "text-yellow-600 fill-yellow-500" : "text-muted-foreground"}`} />
@@ -201,19 +206,19 @@ function Content({ initialRequest }: Props) {
             <hr />
             <div className='flex flex-col md:flex-row gap-2 w-max'>
                 <div className='flex flex-row gap-2 w-max'>
-                    <Badge variant="outline" className='flex items-center gap-1'>
+                    <Badge variant="outline" className='flex items-center gap-1 cursor-pointer'>
                         <LibraryBig className='size-3' />
                         {CATEGORY_LIST.find(category => 
                             category.category === initialRequest.category
                         )?.categoryName}
                     </Badge>
-                    <Badge variant="outline" className='flex items-center gap-1'>
+                    <Badge variant="outline" className='flex items-center gap-1 cursor-pointer'>
                         <Brain className='size-3' />
                         {initialRequest.difficulty.charAt(0).toUpperCase() + initialRequest.difficulty.slice(1).toLowerCase()}
                     </Badge>
                 </div>
                 <div className='flex flex-row gap-2 w-max'>
-                    <Badge variant="outline" className='flex items-center gap-1'>
+                    <Badge variant="outline" className='flex items-center gap-1 cursor-pointer'>
                         <CalendarCheck2 className='size-3' />
                         Generated on {moment(initialRequest.createdAt).format("DD MMM, hh:mm a")}
                     </Badge>
@@ -324,8 +329,9 @@ function Content({ initialRequest }: Props) {
                                                     <Button
                                                         variant='outline'
                                                         className='w-max'
-                                                        disabled={_.isNil(question.userAnswer)}
+                                                        disabled={_.isNil(question.userAnswer) || isSubmitting[question.id]}
                                                         onClick={async () => {
+                                                            setIsSubmitting(prev => ({ ...prev, [question.id]: true }));
                                                             try {
                                                                 const res = await fetch('/api/questions/submit-answer', {
                                                                     method: 'POST',
@@ -339,8 +345,19 @@ function Content({ initialRequest }: Props) {
                                                                 if (res.ok) {
                                                                     await fetchQuestions(initialRequest.id);
 
-                                                                    const { pendingQuestionsForAnswersCount } = await res.json();
+                                                                    if (question.correctOption !== question.userAnswer) {
+                                                                        const wrongQuestions = questions.filter(q => q.isAnswered && q.correctOption !== q.userAnswer).length;
+                                                                        if (wrongQuestions === 3) {
+                                                                            toast({
+                                                                                title: "Patience is the key 🔑",
+                                                                                description: "Use the hint button before submitting the answer if you're stuck.",
+                                                                                variant: "default",
+                                                                                duration: 10000
+                                                                            })
+                                                                        }
+                                                                    }
 
+                                                                    const { pendingQuestionsForAnswersCount } = await res.json();
                                                                     if (pendingQuestionsForAnswersCount === 0) {
                                                                         toast({
                                                                             title: "All questions answered 🎉",
@@ -352,11 +369,13 @@ function Content({ initialRequest }: Props) {
                                                                 }
                                                             } catch (error) {
                                                                 console.error('Error submitting answer:', error);
+                                                            } finally {
+                                                                setIsSubmitting(prev => ({ ...prev, [question.id]: false }));
                                                             }
                                                         }}
                                                     >
-                                                        {question.userAnswer ? <CheckIcon className='size-4' /> : <HourglassIcon className='size-4' />}
-                                                        {question.userAnswer ? 'Submit and show answer' : 'Select an answer to submit'}
+                                                        {isSubmitting[question.id] ? 'Submitting...' : (question.userAnswer ? <CheckIcon className='size-4' /> : <HourglassIcon className='size-4' />)}
+                                                        {isSubmitting[question.id] ? 'Submitting...' : (question.userAnswer ? 'Submit and show answer' : 'Select an answer to submit')}
                                                     </Button> ) : null
                                             }
                                             <Dialog>
@@ -372,7 +391,7 @@ function Content({ initialRequest }: Props) {
                                                             <LightbulbIcon className="size-5" />
                                                         </DialogTitle>
                                                     </DialogHeader>
-                                                    <p className='antialiased'>{question.hint}</p>
+                                                    <QuestionRenderer text={question.hint || ''} type={question.questionType} />
                                                 </DialogContent>
                                             </Dialog>
                                         </div>
@@ -401,7 +420,7 @@ function Content({ initialRequest }: Props) {
                     <Card>
                         <CardHeader>
                             <CardTitle>
-                                Question Set Summary
+                                Questions Summary
                             </CardTitle>
                             <CardDescription>
                                 Summary will be updated as you answer.
@@ -411,16 +430,30 @@ function Content({ initialRequest }: Props) {
                             {
                                 questions.length > 0 ? (
                                     <div className='flex flex-col gap-3'>
-                                <div className='flex flex-col gap-0.5'>
-                                    <div className='flex flex-row gap-2'>
-                                        <ChartBar className='size-4' />
-                                        <p className='text-sm font-medium'>Attempt Results</p>
-                                    </div>
-                                    <div className='flex flex-col'>
-                                        <p className='text-xs text-muted-foreground'>Total Questions: {questions.length}</p>
-                                        <p className='text-xs text-muted-foreground'>Answered: {questions.filter(question => question.isAnswered).length} ({Math.round(questions.filter(question => question.isAnswered).length / questions.length * 100)}%)</p>
-                                        <p className='text-xs text-muted-foreground'>Correct: {questions.filter(question => question.isAnswered && question.correctOption === question.userAnswer).length} ({Math.round(questions.filter(question => question.isAnswered && question.correctOption === question.userAnswer).length / questions.length * 100)}%)</p>
-                                    </div>
+                                        {
+                                            request.status === RequestStatus.PARTIALLY_CREATED && (
+                                                <div className='flex flex-col gap-0.5'>
+                                                    <div className='flex flex-row gap-2'>
+                                                        <CloudAlert className='size-5' />
+                                                        <p className='text-md font-medium'>Partially generated</p>
+                                                    </div>
+                                                    <div className='flex flex-col'>
+                                                        <p className='text-sm text-muted-foreground'>Uh-ho, our AI was not able to generate all {request.initQuestionsCount} questions requested.</p>
+                                                        <p className='text-sm text-muted-foreground'>Don't worry, just refresh this page and we'll generate the remaining {request.initQuestionsCount - questions.length} questions for you.</p>
+                                                    </div>
+                                                </div>
+                                            )
+                                        }
+                                        <div className='flex flex-col gap-0.5'>
+                                            <div className='flex flex-row gap-2'>
+                                                <ChartBar className='size-5' />
+                                                <p className='text-md font-medium'>Attempt Results</p>
+                                            </div>
+                                            <div className='flex flex-col'>
+                                                <p className='text-sm text-muted-foreground'>Total Questions: {questions.length}</p>
+                                                <p className='text-sm text-muted-foreground'>Answered: {questions.filter(question => question.isAnswered).length} ({Math.round(questions.filter(question => question.isAnswered).length / questions.length * 100)}%)</p>
+                                                <p className='text-sm text-muted-foreground'>Correct: {questions.filter(question => question.isAnswered && question.correctOption === question.userAnswer).length} ({Math.round(questions.filter(question => question.isAnswered && question.correctOption === question.userAnswer).length / questions.length * 100)}%)</p>
+                                            </div>
                                         </div>
                                     </div>
                                 ) : (

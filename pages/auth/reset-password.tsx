@@ -2,8 +2,6 @@ import { BookOpenCheckIcon } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import jwt from "jsonwebtoken";
-
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,6 +11,7 @@ import { useRouter } from "next/router";
 import { cn } from "@/lib/client/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSession } from "@/lib/server/auth";
+import { toast } from "@/hooks/use-toast";
 
 const resetPasswordSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -38,6 +37,13 @@ export default function ResetPasswordPage() {
     try {
       await axios.post("/api/auth/forgot-password", data);
       setEmailSent(true);
+
+      toast({
+        title: "We're sending you an email",
+        description: "If an account exists with that email, we've sent you instructions to reset your password.",
+        variant: "default",
+        duration: 10000
+      });
     } catch (err: any) {
       form.setError("root", { 
         message: err.response?.data?.message || "Something went wrong"

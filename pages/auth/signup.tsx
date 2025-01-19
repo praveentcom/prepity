@@ -50,7 +50,7 @@ export default function SignupPage() {
       await axios.post("/api/auth/signup", data);
 
       toast({
-        title: "Verify your email",
+        title: "✅ Success, verify your email",
         description: "We've sent you an email to verify your account. Please check your inbox and click the link to verify your account.",
         variant: "default",
         duration: 10000

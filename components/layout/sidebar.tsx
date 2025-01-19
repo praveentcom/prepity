@@ -35,7 +35,6 @@ export function Sidebar() {
 	const { id: activeRequestId } = router.query;
 
 	useEffect(() => {
-		// Load requests from local storage
 		const storedRequests = localStorage.getItem('requests');
 		if (storedRequests) {
 			setRequests(JSON.parse(storedRequests));
@@ -45,7 +44,6 @@ export function Sidebar() {
 			const data = await fetchRequests(100);
 			setRequests(data);
 
-			// Update local storage with new data
 			localStorage.setItem('requests', JSON.stringify(data));
 		};
 		loadRequests();
@@ -57,6 +55,9 @@ export function Sidebar() {
 
 	const handleLogout = async () => {
 		await logout();
+
+        setSidebarOpen(false);
+
 		setUser(null);
 	};
 
@@ -125,8 +126,9 @@ export function Sidebar() {
 
 	const RequestCard = ({ request }: { request: Request }) => {
 		const isActive = activeRequestId === request.requestSlug;
+
 		return (
-			<Link href={`/requests/${request.requestSlug}`}>
+			<Link href={`/requests/${request.requestSlug}`} onClick={() => setSidebarOpen(false)}>
 				<div 
 					className={`bg-card-foreground/5 cursor-pointer hover:bg-card-foreground/10 border rounded-lg px-3 py-2 transition-colors
 						${isActive 

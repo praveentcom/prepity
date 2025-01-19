@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { AuthProvider, useAuth } from '@/providers/auth-provider';
 import { useRouter } from 'next/router';
 import { Sidebar } from './sidebar';
+import { Loader2 } from 'lucide-react';
 
 interface AuthenticatedLayoutProps {
 	children: React.ReactNode;
@@ -26,13 +27,19 @@ function AuthenticatedLayoutContent({ children }: AuthenticatedLayoutProps) {
 		}
 	}, [user, isLoading]);
 
-    return isLoading ? (<></>) : (
+    return isLoading ? (
+        <>
+            <div className="flex items-center justify-center h-screen">
+                <Loader2 className="size-5 text-muted-foreground" />
+            </div>
+        </>
+    ) : (
         <>
             <Sidebar />
 
-            <main className="py-5 lg:pl-72">
-                <div className="px-4 sm:px-6 lg:px-8">{children}</div>
-            </main>
+            <div className="lg:pl-72">
+                <div className="px-4 py-5 sm:px-6 lg:px-8">{children}</div>
+            </div>
         </>
     )
 }
