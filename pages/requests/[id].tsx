@@ -184,7 +184,7 @@ function Content({ initialRequest }: Props) {
 
     return (
         <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-row md:flex-col items-center md:justify-between gap-2">
                 <h1 className="text-lg font-medium flex items-center gap-2">
                     {initialRequest.query}
                     <button onClick={toggleStarStatus} className="focus:outline-none">
@@ -199,21 +199,25 @@ function Content({ initialRequest }: Props) {
                 )}
             </div>
             <hr />
-            <div className='flex flex-row gap-2 w-max'>
-                <Badge variant="outline" className='flex items-center gap-1'>
-                    <LibraryBig className='size-3' />
-                    {CATEGORY_LIST.find(category => 
-                        category.category === initialRequest.category
-                    )?.categoryName}
-                </Badge>
-                <Badge variant="outline" className='flex items-center gap-1'>
-                    <Brain className='size-3' />
-                    {initialRequest.difficulty.charAt(0).toUpperCase() + initialRequest.difficulty.slice(1).toLowerCase()}
-                </Badge>
-                <Badge variant="outline" className='flex items-center gap-1'>
-                    <CalendarCheck2 className='size-3' />
-                    Generated on {moment(initialRequest.createdAt).format("DD MMM, hh:mm a")}
-                </Badge>
+            <div className='flex flex-row md:flex-col gap-2 w-max'>
+                <div className='flex flex-col gap-2 w-max'>
+                    <Badge variant="outline" className='flex items-center gap-1'>
+                        <LibraryBig className='size-3' />
+                        {CATEGORY_LIST.find(category => 
+                            category.category === initialRequest.category
+                        )?.categoryName}
+                    </Badge>
+                    <Badge variant="outline" className='flex items-center gap-1'>
+                        <Brain className='size-3' />
+                        {initialRequest.difficulty.charAt(0).toUpperCase() + initialRequest.difficulty.slice(1).toLowerCase()}
+                    </Badge>
+                </div>
+                <div className='flex flex-col gap-2 w-max'>
+                    <Badge variant="outline" className='flex items-center gap-1'>
+                        <CalendarCheck2 className='size-3' />
+                        Generated on {moment(initialRequest.createdAt).format("DD MMM, hh:mm a")}
+                    </Badge>
+                </div>
             </div>
             <hr />
             <div className='grid grid-cols-3 gap-4'>
@@ -393,7 +397,7 @@ function Content({ initialRequest }: Props) {
                         )}
                     </div>
                 </div>
-                <div className='col-span-1'>
+                <div className='col-span-3 sm:col-span-1'>
                     <Card>
                         <CardHeader>
                             <CardTitle>

@@ -50,7 +50,6 @@ export default function GenerateQuestionsForm() {
             router.push(`/requests/${response.data.requestSlug}`)
         } catch (error) {
             console.error('Error creating request:', error)
-        } finally {
             setIsLoading(false)
         }
     }
