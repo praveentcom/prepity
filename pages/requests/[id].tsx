@@ -21,6 +21,7 @@ import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import moment from 'moment';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import Link from 'next/link';
 
 interface Props {
 	initialRequest: Request;
@@ -439,7 +440,7 @@ function Content({ initialRequest }: Props) {
                                                     </div>
                                                     <div className='flex flex-col gap-2'>
                                                         <p className='text-sm text-muted-foreground'>Uh-ho, our AI was not able to generate all {request.initQuestionsCount} questions requested.</p>
-                                                        <p className='text-sm text-muted-foreground'>Don't worry, just refresh this page and we'll generate the remaining {request.initQuestionsCount - questions.length} questions for you.</p>
+                                                        <p className='text-sm text-muted-foreground'>Don't worry, just <a target="_self" href={`/requests/${initialRequest.requestSlug}`} className='underline'>refresh this page</a> and we'll generate the remaining {request.initQuestionsCount - questions.length} questions for you.</p>
                                                     </div>
                                                 </div>
                                             )
