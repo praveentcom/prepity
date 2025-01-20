@@ -26,6 +26,7 @@ import moment from 'moment';
 import { CATEGORY_LIST, MENU_ITEMS } from '@/lib/client/constants';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import { StarToggle } from '../ui/star-toggle';
 
 export function Sidebar() {
 	const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -130,15 +131,28 @@ export function Sidebar() {
 		return (
 			<Link href={`/requests/${request.requestSlug}`} onClick={() => setSidebarOpen(false)}>
 				<div 
-					className={`bg-card-foreground/5 cursor-pointer hover:bg-card-foreground/10 border rounded-lg px-3 py-2 transition-colors
+					className={`cursor-pointer hover:bg-card-foreground/10 border rounded-lg px-3 py-2 transition-colors
 						${isActive 
-							? 'border-card-foreground/15 bg-card-foreground/10 hover:bg-card-foreground/10' 
-							: 'border-transparent hover:border-card-foreground/15'
+							? 'border-card-foreground/10 shadow-sm bg-card-foreground/10' 
+							: 'border-transparent bg-card-foreground/5'
 						}`}
 				>
 					<div className="text-sm truncate">{request.query}</div>
-					<div className="text-xs text-muted-foreground truncate">
-						{CATEGORY_LIST.find(category => category.category === request.category)?.categoryName}
+					<div className='flex items-center gap-x-1.5'>
+						{
+                            request.isStarred ? (
+                                <StarToggle
+                                    isStarred={request.isStarred}
+                                    onToggle={async () => { return; }}
+                                    size='small'
+                                />
+                            ) : (
+                                <div className='size-2 rounded-full bg-card-foreground/10'></div>
+                            )
+                        }
+						<div className='text-xs text-muted-foreground truncate'>
+							{CATEGORY_LIST.find(category => category.category === request.category)?.categoryName}
+						</div>
 					</div>
 				</div>
 			</Link>
@@ -148,13 +162,13 @@ export function Sidebar() {
 	const MenuItems = () => {
 		const { pathname } = useRouter();
 		return (
-			<div className="menu-items flex flex-col gap-y-2">
+			<div className="menu-items flex flex-col gap-y-2 px-3 pb-4">
 				{MENU_ITEMS.map((item) => (
 					<Link key={item.name} href={item.href}>
-						<div className={`bg-card-foreground/5 gap-1.5 flex items-center cursor-pointer hover:bg-card-foreground/10 border rounded-lg px-3 py-1.5 transition-colors
+						<div className={`gap-1.5 flex items-center cursor-pointer hover:bg-card-foreground/10 border rounded-lg px-3 py-1.5 transition-colors
                             ${pathname === item.href 
-                                ? 'border-card-foreground/15 bg-card-foreground/10 hover:bg-card-foreground/10' 
-                                : 'border-transparent hover:border-card-foreground/15'
+                                ? 'border-card-foreground/10 shadow-sm bg-card-foreground/10' 
+							    : 'border-transparent bg-card-foreground/5'
                             }`}
 						>
 							<item.icon className="size-4" />
@@ -168,34 +182,43 @@ export function Sidebar() {
 
 	const getSidebar = () => {
 		return (
-			<div className="flex grow flex-col overflow-y-auto border-r border-muted-foreground/20 bg-card px-6">
-				<div className="flex h-16 shrink-0 items-center">
+			<div className="flex h-full flex-col border-r border-muted-foreground/20 bg-card px-6">
+				{/* Fixed Header */}
+				<div className="flex h-12 shrink-0 items-center">
 					<Logo className="self-center" />
 				</div>
-				<nav className="flex flex-1 flex-col">
-					<ul role="list" className="flex flex-1 flex-col gap-y-3">
-						<div className='-mx-3'>
+				
+				{/* Main Navigation Area */}
+				<nav className="flex h-[calc(100vh-3rem)] flex-col">
+					<ul role="list" className="flex h-full flex-col">
+						{/* Menu Items - Fixed */}
+						<li className="-mx-6">
 							<MenuItems />
-						</div>
-                        <hr className="my-1.5 border-muted-foreground/20" />
-						<div className="overflow-y-scroll -mx-3 flex flex-col gap-y-5">
-							{Object.entries(groupedRequests).length === 0 ? (
-								<div className="text-xs text-muted-foreground italic mx-3">
-									Generated question sets will be listed here once ready
-								</div>
-							) : (
-								Object.entries(groupedRequests).map(([date, _requests]) => (
-									<div key={date} className="date-group grid grid-cols-1 gap-y-2">
-										<h3 className="text-xs ml-3 font-semibold uppercase text-muted-foreground">{date}</h3>
-										<div className="requests-cards grid grid-cols-1 gap-y-2">
-											{_requests.map((request) => (
-												<RequestCard key={request.id} request={request} />
-											))}
-										</div>
+						</li>
+						
+						{/* Scrollable Requests Section */}
+						<div className="flex-1 -mx-6 min-h-0">
+							<div className="h-full overflow-y-auto">
+								{Object.entries(groupedRequests).length === 0 ? (
+									<div className="text-xs text-muted-foreground italic px-3 py-2">
+										Generated question sets will be listed here once ready
 									</div>
-								))
-							)}
+								) : (
+									Object.entries(groupedRequests).map(([date, _requests]) => (
+										<div key={date} className="date-group grid grid-cols-1 gap-y-2">
+											<h3 className="text-[0.7rem] font-semibold uppercase text-muted-foreground sticky top-0 bg-card py-1.5 px-6 border-y border-muted-foreground/10">{date}</h3>
+											<div className="requests-cards grid grid-cols-1 gap-y-2 px-3 pb-3 pt-1">
+												{_requests.map((request) => (
+													<RequestCard key={request.id} request={request} />
+												))}
+											</div>
+										</div>
+									))
+								)}
+							</div>
 						</div>
+						
+						{/* Fixed Footer */}
 						<li className="-mx-6 mt-auto">
 							<VersionInfo />
 							<UserMenu />
