@@ -30,7 +30,7 @@ function AuthenticatedLayoutContent({ children }: AuthenticatedLayoutProps) {
     return isLoading ? (
         <>
             <div className="flex items-center justify-center h-screen">
-                <Loader2 className="size-5 text-muted-foreground" />
+                <Loader2 className="size-5 text-muted-foreground animate-spin" />
             </div>
         </>
     ) : (
