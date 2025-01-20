@@ -429,7 +429,7 @@ function Content({ initialRequest }: Props) {
                         <CardContent>
                             {
                                 questions.length > 0 ? (
-                                    <div className='flex flex-col gap-3'>
+                                    <div className='flex flex-col gap-4'>
                                         {
                                             request.status === RequestStatus.PARTIALLY_CREATED && (
                                                 <div className='flex flex-col gap-0.5'>
@@ -437,7 +437,7 @@ function Content({ initialRequest }: Props) {
                                                         <CloudAlert className='size-5' />
                                                         <p className='text-md font-medium'>Partially generated</p>
                                                     </div>
-                                                    <div className='flex flex-col'>
+                                                    <div className='flex flex-col gap-2'>
                                                         <p className='text-sm text-muted-foreground'>Uh-ho, our AI was not able to generate all {request.initQuestionsCount} questions requested.</p>
                                                         <p className='text-sm text-muted-foreground'>Don't worry, just refresh this page and we'll generate the remaining {request.initQuestionsCount - questions.length} questions for you.</p>
                                                     </div>
