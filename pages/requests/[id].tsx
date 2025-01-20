@@ -374,7 +374,7 @@ function Content({ initialRequest }: Props) {
                                                             }
                                                         }}
                                                     >
-                                                        {isSubmitting[question.id] ? 'Submitting...' : (question.userAnswer ? <CheckIcon className='size-4' /> : <HourglassIcon className='size-4' />)}
+                                                        {isSubmitting[question.id] ? <Loader2 className='size-4 animate-spin' /> : (question.userAnswer ? <CheckIcon className='size-4' /> : <HourglassIcon className='size-4' />)}
                                                         {isSubmitting[question.id] ? 'Submitting...' : (question.userAnswer ? 'Submit and show answer' : 'Select an answer to submit')}
                                                     </Button> ) : null
                                             }
