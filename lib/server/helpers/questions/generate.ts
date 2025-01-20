@@ -43,7 +43,7 @@ export async function generate({user, request, currentQuestionsCount}: {user: Pa
             schemaName: 'question',
             schemaDescription: 'A high-quality question with 4 options, correct answer, explanation, and hint. All text fields support markdown formatting.',
             output: 'array',
-            prompt: `Generate ${initQuestionsCount - currentQuestionsCount} number of ${difficulty.toLowerCase()} difficulty questions about '${query.toLowerCase().replaceAll('questions about ', '')}' for the category '${category}'.
+            prompt: `Generate ${initQuestionsCount - currentQuestionsCount} number of ${difficulty.toLowerCase()} difficulty questions about '${query.toLowerCase().replace(/questions (about|on|regarding|concerning|related to|with respect to|in relation to) /, '')}' for the category '${category}'.
 
 Instructions for generating high-quality questions:
 ${++instructionsCount}. Use markdown formatting to improve readability:

@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import moment from 'moment';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
+import { StarToggle } from '@/components/ui/star-toggle';
 
 interface Props {
 	initialRequest: Request;
@@ -188,14 +189,37 @@ function Content({ initialRequest }: Props) {
         }
     };
 
+    const toggleQuestionStarStatus = async (questionId: number, star: boolean) => {
+        try {
+            const res = await fetch('/api/questions/star', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ questionId, star }),
+            });
+            if (res.ok) {
+                const updatedQuestion = await res.json();
+                setQuestions(prevQuestions => prevQuestions.map(q => q.id === questionId ? { ...q, isStarred: updatedQuestion.question.isStarred } : q));
+
+                toast({
+                    title: `✅ Question ${updatedQuestion.question.isStarred ? 'starred' : 'unstarred'}`,
+                    description: `Request completed successfully.`,
+                    variant: 'default',
+                    duration: 5000,
+                });
+            }
+        } catch (error) {
+            console.error('Error toggling question star status:', error);
+        }
+    };
+
     return (
         <div className="flex flex-col gap-3">
             <div className="flex flex-col md:flex-row items-center md:justify-between gap-2">
                 <h1 className="text-lg font-medium flex items-center gap-2 w-full md:w-auto">
                     {initialRequest.query}
-                    <button onClick={toggleStarStatus} className="focus:outline-none">
-                        <StarIcon className={`size-4 ${request.isStarred ? "text-yellow-600 fill-yellow-500" : "text-muted-foreground"}`} />
-                    </button>
+                    <StarToggle isStarred={request.isStarred} onToggle={toggleStarStatus} />
                 </h1>
                 {(request.status === RequestStatus.PROCESSING) && (
                     <Badge variant="default" className='flex text-xs items-center gap-1 animate-pulse'>
@@ -235,8 +259,9 @@ function Content({ initialRequest }: Props) {
                                 className={`transition-opacity duration-500 ease-in-out opacity-100`}>
                                 <CardHeader>
                                     <div className='flex flex-col gap-0.5'>
-                                        <h4 className="text-sm font-medium text-muted-foreground">
+                                        <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
                                             Question {index + 1}
+                                            <StarToggle isStarred={question.isStarred} onToggle={() => toggleQuestionStarStatus(question.id, !question.isStarred)} size='small' variant='bookmark' />
                                         </h4>
                                         <QuestionRenderer text={question.question} type={question.questionType} />
                                     </div>
@@ -245,7 +270,7 @@ function Content({ initialRequest }: Props) {
                                     <div className="flex flex-col gap-5">
                                         <div className="space-y-4">
                                             {[1, 2, 3, 4].map((optionNum) => {
-                                                let buttonClass = 'w-full text-left px-4 py-3 border rounded-lg';
+                                                let buttonClass = 'w-full text-left px-3.5 py-2.5 border rounded-lg';
 
                                                 if (question.isAnswered) {
                                                     buttonClass += ' cursor-not-allowed';
