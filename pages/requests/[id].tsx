@@ -385,12 +385,21 @@ function Content({ initialRequest }: Props) {
 
                                                                     const { pendingQuestionsForAnswersCount } = await res.json();
                                                                     if (pendingQuestionsForAnswersCount === 0) {
-                                                                        toast({
-                                                                            title: "All questions answered 🎉",
-                                                                            description: "You've answered all the questions. You can now see the answers and explanations.",
-                                                                            variant: "default",
-                                                                            duration: 10000
-                                                                        })
+                                                                        if (questions.every(q => q.correctOption === q.userAnswer)) {
+                                                                            toast({
+                                                                                title: "All correct, you're amazing! 🥳",
+                                                                                description: "You can now see the answers and explanations. Keep up the good work, generate more questions to practice!",
+                                                                                variant: "default",
+                                                                                duration: 10000
+                                                                            })
+                                                                        } else {
+                                                                            toast({
+                                                                                title: "All questions answered 🎉",
+                                                                                description: "You've answered all the questions. You can now see the answers and explanations, and generate more to practice!",
+                                                                                variant: "default",
+                                                                                duration: 10000
+                                                                            })
+                                                                        }
                                                                     }
                                                                 }
                                                             } catch (error) {
