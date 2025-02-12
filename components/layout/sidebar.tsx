@@ -133,7 +133,7 @@ export function Sidebar() {
 				<div 
 					className={`cursor-pointer hover:bg-card-foreground/10 border rounded-lg px-3 py-2 transition-colors
 						${isActive 
-							? 'border-card-foreground/10 shadow-sm bg-card-foreground/10' 
+							? 'border-card-foreground/10 shadow-xs bg-card-foreground/10' 
 							: 'border-transparent bg-card-foreground/5'
 						}`}
 				>
@@ -167,7 +167,7 @@ export function Sidebar() {
 					<Link key={item.name} href={item.href}>
 						<div className={`gap-1.5 flex items-center cursor-pointer hover:bg-card-foreground/10 border rounded-lg px-3 py-1.5 transition-colors
                             ${pathname === item.href 
-                                ? 'border-card-foreground/10 shadow-sm bg-card-foreground/10' 
+                                ? 'border-card-foreground/10 shadow-xs bg-card-foreground/10' 
 							    : 'border-transparent bg-card-foreground/5'
                             }`}
 						>
@@ -237,16 +237,16 @@ export function Sidebar() {
 				className="relative z-50 lg:hidden">
 				<DialogBackdrop
 					transition
-					className="fixed inset-0 bg-muted-foreground/80 transition-opacity duration-300 ease-linear data-[closed]:opacity-0"
+					className="fixed inset-0 bg-muted-foreground/80 transition-opacity duration-300 ease-linear data-closed:opacity-0"
 				/>
 
 				<div className="fixed inset-0 flex">
 					<DialogPanel
 						transition
-						className="relative mr-16 flex w-full max-w-xs flex-1 transform transition duration-300 ease-in-out data-[closed]:-translate-x-full">
+						className="relative mr-16 flex w-full max-w-xs flex-1 transform transition duration-300 ease-in-out data-closed:-translate-x-full">
 						{/* Mobile sidebar content */}
 						<TransitionChild>
-							<div className="absolute left-full top-0 flex w-16 justify-center pt-5 duration-300 ease-in-out data-[closed]:opacity-0">
+							<div className="absolute left-full top-0 flex w-16 justify-center pt-5 duration-300 ease-in-out data-closed:opacity-0">
 								<button
 									type="button"
 									onClick={() => setSidebarOpen(false)}
@@ -272,7 +272,7 @@ export function Sidebar() {
 			</div>
 
 			{/* Mobile header */}
-			<div className="sticky top-0 z-40 flex items-center gap-x-6 px-4 py-4 shadow-sm sm:px-6 lg:hidden bg-card">
+			<div className="sticky top-0 z-40 flex items-center gap-x-6 px-4 py-4 shadow-xs sm:px-6 lg:hidden bg-card">
 				<button
 					type="button"
 					onClick={() => setSidebarOpen(true)}

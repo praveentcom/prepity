@@ -81,7 +81,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 };
 
 const QuestionSkeleton = () => (
-	<div className="bg-white shadow sm:rounded-lg animate-pulse">
+	<div className="bg-white shadow-sm sm:rounded-lg animate-pulse">
 		<div className="px-4 py-5 sm:p-6">
 			<div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
 			<div className="space-y-3">

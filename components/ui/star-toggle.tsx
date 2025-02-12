@@ -48,7 +48,7 @@ export function StarToggle({ isStarred, onToggle, size = 'default', variant = 'd
     }
 
     return (
-        <button onClick={handleToggle} className="focus:outline-none" disabled={loading}>
+        <button onClick={handleToggle} className="focus:outline-hidden" disabled={loading}>
             <Icon className={`${iconSizeClass} ${isStarred ? starredClass : "text-muted-foreground"}`} />
         </button>
     );
