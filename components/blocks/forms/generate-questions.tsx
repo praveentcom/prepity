@@ -36,6 +36,12 @@ export default function GenerateQuestionsForm() {
 
     const form = useForm<z.infer<typeof generateQuestionsSchema>>({
         resolver: zodResolver(generateQuestionsSchema),
+        defaultValues: {
+            category: '',
+            focusArea: '',
+            difficulty: 'MEDIUM',
+            initQuestionsCount: 10,
+        },
     })
     
     const selectedCategory = form.watch('category')
@@ -134,7 +140,7 @@ export default function GenerateQuestionsForm() {
                         name="initQuestionsCount"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Number of Questions</FormLabel>
+                                <FormLabel>Questions Count</FormLabel>
                                 <FormControl>
                                     <Select 
                                         onValueChange={(value) => field.onChange(parseInt(value))} 
@@ -146,7 +152,7 @@ export default function GenerateQuestionsForm() {
                                         <SelectContent>
                                             {[5, 10, 15, 20, 25, 30, 40, 50].map((num) => (
                                                 <SelectItem key={num} value={num.toString()}>
-                                                    {num} questions {num === 10 ? ' (recommended)' : ''}
+                                                    {num} questions
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
