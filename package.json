@@ -3,9 +3,9 @@
   "version": "0.1.4",
   "private": true,
   "scripts": {
-    "postinstall": "prisma generate",
+    "postinstall": "prisma generate --no-engine",
     "dev": "next dev --turbopack -p 3000",
-    "build": "prisma generate && next build",
+    "build": "prisma generate --no-engine && next build",
     "start": "next start -p 3010",
     "lint": "next lint"
   },
