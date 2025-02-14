@@ -10,16 +10,6 @@
     "@ai-sdk/provider" "1.0.7"
     "@ai-sdk/provider-utils" "2.1.7"
 
-"@ai-sdk/provider-utils@2.1.6":
-  version "2.1.6"
-  resolved "https://registry.yarnpkg.com/@ai-sdk/provider-utils/-/provider-utils-2.1.6.tgz#5b2bff2d44ffa8ec629109ea2b28d2a7528104b4"
-  integrity sha512-Pfyaj0QZS22qyVn5Iz7IXcJ8nKIKlu2MeSAdKJzTwkAks7zdLaKVB+396Rqcp1bfQnxl7vaduQVMQiXUrgK8Gw==
-  dependencies:
-    "@ai-sdk/provider" "1.0.7"
-    eventsource-parser "^3.0.0"
-    nanoid "^3.3.8"
-    secure-json-parse "^2.7.0"
-
 "@ai-sdk/provider-utils@2.1.7":
   version "2.1.7"
   resolved "https://registry.yarnpkg.com/@ai-sdk/provider-utils/-/provider-utils-2.1.7.tgz#b644abce10e5b07388a0439b9b03a69d5fbe9d60"
@@ -470,10 +460,10 @@
     "@prisma/fetch-engine" "6.3.1"
     "@prisma/get-platform" "6.3.1"
 
-"@prisma/extension-accelerate@^1.2.1":
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/@prisma/extension-accelerate/-/extension-accelerate-1.2.1.tgz#c3fc2a76be1ea7df099f51876b9bdd38b73d049a"
-  integrity sha512-QicnMeyqL226ilT3vvRsFAqPeIdqHGKR4c25CoK5zZ1tNIv8egfgpD1gCKqOGmfAz0pIKQnMuJU3eNg9KItC7A==
+"@prisma/extension-accelerate@^1.2.2":
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/@prisma/extension-accelerate/-/extension-accelerate-1.2.2.tgz#9583416d83e25a84030a78e3c06d90c862b5fdda"
+  integrity sha512-LOlfkG6If+o8PFRzLzp26ackP/d+j2HrkTJaxuV/Wd+sdAHz/AkmzEDGbo2UpHFpxEM9hWMBe3ScSwUKYUDOXg==
 
 "@prisma/fetch-engine@6.3.1":
   version "6.3.1"
