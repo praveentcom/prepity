@@ -10,16 +10,6 @@
     "@ai-sdk/provider" "1.0.7"
     "@ai-sdk/provider-utils" "2.1.7"
 
-"@ai-sdk/provider-utils@2.1.6":
-  version "2.1.6"
-  resolved "https://registry.yarnpkg.com/@ai-sdk/provider-utils/-/provider-utils-2.1.6.tgz#5b2bff2d44ffa8ec629109ea2b28d2a7528104b4"
-  integrity sha512-Pfyaj0QZS22qyVn5Iz7IXcJ8nKIKlu2MeSAdKJzTwkAks7zdLaKVB+396Rqcp1bfQnxl7vaduQVMQiXUrgK8Gw==
-  dependencies:
-    "@ai-sdk/provider" "1.0.7"
-    eventsource-parser "^3.0.0"
-    nanoid "^3.3.8"
-    secure-json-parse "^2.7.0"
-
 "@ai-sdk/provider-utils@2.1.7":
   version "2.1.7"
   resolved "https://registry.yarnpkg.com/@ai-sdk/provider-utils/-/provider-utils-2.1.7.tgz#b644abce10e5b07388a0439b9b03a69d5fbe9d60"
@@ -1498,10 +1488,10 @@ base-64@^1.0.0:
   resolved "https://registry.yarnpkg.com/base-64/-/base-64-1.0.0.tgz#09d0f2084e32a3fd08c2475b973788eee6ae8f4a"
   integrity sha512-kwDPIFCGx0NZHog36dj+tHiwP4QMzsZ3AgMViUBKI0+V5n4U0ufTCUMhnQ04diaRI8EX/QcPfql7zlhZ7j4zgg==
 
-bcryptjs@^2.4.3:
-  version "2.4.3"
-  resolved "https://registry.yarnpkg.com/bcryptjs/-/bcryptjs-2.4.3.tgz#9ab5627b93e60621ff7cdac5da9733027df1d0cb"
-  integrity sha512-V/Hy/X9Vt7f3BbPJEi8BdVFMByHi+jNXrYkW3huaybV/kQ0KJg0Y6PkEMbn+zeT+i+SiKZ/HMqJGIIt4LZDqNQ==
+bcryptjs@^3.0.1:
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/bcryptjs/-/bcryptjs-3.0.1.tgz#870705ef5c5148de29395a0695ca2e7766cf6c2e"
+  integrity sha512-iY+rRoR0bToRe8LTJkVX2gawo8gmgDQbiFsaKy8fVuG3WXekEQrjasfmWIbJxJHttEKPa+xPxbw3GROnJSmu0A==
 
 brace-expansion@^1.1.7:
   version "1.1.11"
