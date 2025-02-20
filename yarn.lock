@@ -10,16 +10,6 @@
     "@ai-sdk/provider" "1.0.7"
     "@ai-sdk/provider-utils" "2.1.8"
 
-"@ai-sdk/provider-utils@2.1.7":
-  version "2.1.7"
-  resolved "https://registry.yarnpkg.com/@ai-sdk/provider-utils/-/provider-utils-2.1.7.tgz#b644abce10e5b07388a0439b9b03a69d5fbe9d60"
-  integrity sha512-5pliIKahXPlx3PZNBL3TtOBosFftoCq8bUNYdLi2M3YPBdQen9G9mR1BCrhC5hhEk4i3XTM8boqYeuRN6kLfsA==
-  dependencies:
-    "@ai-sdk/provider" "1.0.7"
-    eventsource-parser "^3.0.0"
-    nanoid "^3.3.8"
-    secure-json-parse "^2.7.0"
-
 "@ai-sdk/provider-utils@2.1.8":
   version "2.1.8"
   resolved "https://registry.yarnpkg.com/@ai-sdk/provider-utils/-/provider-utils-2.1.8.tgz#370ccd30121684ce1bfbba20dd906481fad4b272"
@@ -4079,12 +4069,13 @@ react-latex-next@^3.0.0:
   dependencies:
     katex "^0.16.0"
 
-react-markdown@^9.0.3:
-  version "9.0.3"
-  resolved "https://registry.yarnpkg.com/react-markdown/-/react-markdown-9.0.3.tgz#c12bf60dad05e9bf650b86bcc612d80636e8456e"
-  integrity sha512-Yk7Z94dbgYTOrdk41Z74GoKA7rThnsbbqBTRYuxoe08qvfQ9tJVhmAKw6BJS/ZORG7kTy/s1QvYzSuaoBA1qfw==
+react-markdown@^10.0.0:
+  version "10.0.0"
+  resolved "https://registry.yarnpkg.com/react-markdown/-/react-markdown-10.0.0.tgz#dc4e4c0d2b1ca79616fd0d6a88b1f3ef683b096c"
+  integrity sha512-4mTz7Sya/YQ1jYOrkwO73VcFdkFJ8L8I9ehCxdcV0XrClHyOJGKbBk5FR4OOOG+HnyKw5u+C/Aby9TwinCteYA==
   dependencies:
     "@types/hast" "^3.0.0"
+    "@types/mdast" "^4.0.0"
     devlop "^1.0.0"
     hast-util-to-jsx-runtime "^2.0.0"
     html-url-attributes "^3.0.0"
