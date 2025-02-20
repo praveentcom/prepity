@@ -62,7 +62,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@eslint/js": "^9.17.0",
-    "@tailwindcss/postcss": "^4.0.0",
+    "@tailwindcss/postcss": "^4.0.7",
     "@types/bcryptjs": "^2.4.6",
     "@types/cookie": "^1.0.0",
     "@types/jsonwebtoken": "^9.0.7",
