@@ -46,7 +46,7 @@
     "nodemailer": "^6.10.0",
     "postgresql": "^0.0.1",
     "prisma": "^6.5.0",
-    "react": "^19.0.0",
+    "react": "^19.1.0",
     "react-day-picker": "9.5.1",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.54.2",
