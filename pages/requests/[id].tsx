@@ -85,7 +85,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 };
 
 const QuestionSkeleton = () => (
-	<div className="bg-white shadow-sm sm:rounded-lg animate-pulse">
+	<div className="bg-white sm:rounded-lg animate-pulse">
 		<div className="px-4 py-5 sm:p-6">
 			<div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
 			<div className="space-y-3">
@@ -187,6 +187,16 @@ function Content({ initialRequest }: Props) {
             if (!res.ok) {
                 throw new Error('Failed to update star status');
             }
+            
+            const storedRequests = localStorage.getItem('requests');
+            if (storedRequests) {
+                const requests = JSON.parse(storedRequests);
+                const updatedRequests = requests.map((r: Request) => 
+                    r.requestSlug === request.requestSlug ? { ...r, isStarred: newState } : r
+                );
+                localStorage.setItem('requests', JSON.stringify(updatedRequests));
+                window.dispatchEvent(new Event('requests-updated'));
+            }
         } catch (error) {
             setRequest(prev => ({ ...prev, isStarred: previousState }));
             console.error('Error toggling star status:', error);
@@ -258,13 +268,13 @@ function Content({ initialRequest }: Props) {
     };
 
     return (
-        <div className="flex flex-col gap-3">
-            <div className="flex flex-col md:flex-row items-center md:justify-between gap-2">
-                <h1 className="text-lg font-medium flex items-center gap-2 w-full md:w-auto">
+        <div className="flex flex-col gap-5">
+            <div className="flex flex-row items-center justify-between gap-2">
+                <h1 className="text-lg font-medium flex items-center gap-2">
                     {initialRequest.query}
                     <StarToggle isStarred={request.isStarred} onToggle={toggleStarStatus} />
                 </h1>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                     {(request.status === RequestStatus.PROCESSING) && (
                         <Badge variant="default" className='flex text-xs items-center gap-1 animate-pulse'>
                             <Hourglass className='size-3' />
@@ -310,28 +320,6 @@ function Content({ initialRequest }: Props) {
                     </Dialog>
                 </div>
             </div>
-            <hr />
-            <div className='flex flex-col md:flex-row gap-2 w-max'>
-                <div className='flex flex-row gap-2 w-max'>
-                    <Badge variant="outline" className='flex items-center gap-1 cursor-pointer'>
-                        <LibraryBig className='size-3' />
-                        {CATEGORY_LIST.find(category => 
-                            category.category === initialRequest.category
-                        )?.categoryName}
-                    </Badge>
-                    <Badge variant="outline" className='flex items-center gap-1 cursor-pointer'>
-                        <Brain className='size-3' />
-                        {initialRequest.difficulty.charAt(0).toUpperCase() + initialRequest.difficulty.slice(1).toLowerCase()}
-                    </Badge>
-                </div>
-                <div className='flex flex-row gap-2 w-max'>
-                    <Badge variant="outline" className='flex items-center gap-1 cursor-pointer'>
-                        <CalendarCheck2 className='size-3' />
-                        Generated on {moment(initialRequest.createdAt).format("DD MMM, hh:mm a")}
-                    </Badge>
-                </div>
-            </div>
-            <hr />
             <div className='grid grid-cols-3 gap-4'>
                 <div className='col-span-3 sm:col-span-2'>
                     <div className="grid grid-cols-1 gap-6">
@@ -516,7 +504,7 @@ function Content({ initialRequest }: Props) {
                                 </CardContent>
                                 {question.isAnswered && (
                                     <CardFooter>
-                                        <div className="text-muted-foreground grid gap-4">
+                                        <div className="text-muted-foreground grid gap-4 w-full">
                                             <hr />
                                             <div className='flex flex-col gap-0.5'>
                                                 <h4 className="text-sm font-medium">Explanation</h4>
@@ -550,9 +538,9 @@ function Content({ initialRequest }: Props) {
                                         {
                                             request.status === RequestStatus.PARTIALLY_CREATED && (
                                                 <div className='flex flex-col gap-0.5'>
-                                                    <div className='flex flex-row gap-2'>
-                                                        <CloudAlert className='size-5' />
-                                                        <p className='text-md font-medium'>Partially generated</p>
+                                                    <div className='flex flex-row gap-1.5 items-center'>
+                                                        <CloudAlert className='size-3.5' />
+                                                        <p className='text-sm font-medium'>Partially generated</p>
                                                     </div>
                                                     <div className='flex flex-col gap-2'>
                                                         <p className='text-sm text-muted-foreground'>Uh-ho, our AI was not able to generate all {request.initQuestionsCount} questions requested.</p>
@@ -562,9 +550,9 @@ function Content({ initialRequest }: Props) {
                                             )
                                         }
                                         <div className='flex flex-col gap-0.5'>
-                                            <div className='flex flex-row gap-2'>
-                                                <ChartBar className='size-5' />
-                                                <p className='text-md font-medium'>Attempt Results</p>
+                                            <div className='flex flex-row gap-1.5 items-center'>
+                                                <ChartBar className='size-3.5' />
+                                                <p className='text-sm font-medium'>Attempt Results</p>
                                             </div>
                                             <div className='flex flex-col'>
                                                 <p className='text-sm text-muted-foreground'>Total Questions: {questions.length}</p>
@@ -575,7 +563,7 @@ function Content({ initialRequest }: Props) {
                                     </div>
                                 ) : (
                                     <div className='flex flex-col gap-3'>
-                                        <p className='text-xs italic text-muted-foreground'>No questions generated yet.</p>
+                                        <p className='text-xs text-muted-foreground'>No questions generated yet.</p>
                                     </div>
                                 )
                             }

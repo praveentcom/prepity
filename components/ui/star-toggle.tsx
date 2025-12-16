@@ -29,7 +29,7 @@ export function StarToggle({ isStarred, onToggle, size = 'default', variant = 'd
         }
     };
 
-    const iconSizeClass = size === 'small' ? 'size-2.5' : 'size-4';
+    const iconSizeClass = size === 'small' ? 'size-3' : 'size-4';
     
     var Icon, starredClass;
     switch (variant) {

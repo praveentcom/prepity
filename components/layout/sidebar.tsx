@@ -37,10 +37,22 @@ export function Sidebar() {
 			localStorage.setItem('requests', JSON.stringify(data));
 		};
 		loadRequests();
+
+		const handleRequestsUpdated = () => {
+			const updatedRequests = localStorage.getItem('requests');
+			if (updatedRequests) {
+				setRequests(JSON.parse(updatedRequests));
+			}
+		};
+		window.addEventListener('requests-updated', handleRequestsUpdated);
+
+		return () => {
+			window.removeEventListener('requests-updated', handleRequestsUpdated);
+		};
 	}, []);
 
     const VersionInfo = () => (
-		<div className="flex w-full cursor-pointer items-center gap-x-3 px-4 py-2.5 hover:bg-muted border-t border-muted-foreground/10">
+		<div className="flex w-full cursor-pointer items-center gap-x-3 px-4 py-2.5 hover:bg-muted border-t">
             <div className="flex flex-col text-left">
                 <span
                     className="text-xs text-muted-foreground truncate"
@@ -68,9 +80,9 @@ export function Sidebar() {
 		return (
 			<Link href={`/requests/${request.requestSlug}`} onClick={() => setSidebarOpen(false)}>
 				<div 
-					className={`cursor-pointer hover:bg-card-foreground/10 border rounded-lg px-3 py-2 transition-colors
+					className={`cursor-pointer hover:bg-card-foreground/5 border rounded-lg px-3 py-2 transition-colors
 						${isActive 
-							? 'border-card-foreground/10 shadow-xs bg-card-foreground/10' 
+							? 'bg-card-foreground/5' 
 							: 'border-transparent bg-card-foreground/5'
 						}`}
 				>
@@ -84,7 +96,7 @@ export function Sidebar() {
                                     size='small'
                                 />
                             ) : (
-                                <div className='size-2 rounded-full bg-card-foreground/10'></div>
+                                <div className='size-2 rounded-full bg-card-foreground/5'></div>
                             )
                         }
 						<div className='text-xs text-muted-foreground truncate'>
@@ -96,43 +108,17 @@ export function Sidebar() {
 		);
 	};
 
-	const MenuItems = () => {
-		const { pathname } = useRouter();
-		return (
-			<div className="menu-items flex flex-col gap-y-2 px-3 pb-4">
-				{MENU_ITEMS.map((item) => (
-					<Link key={item.name} href={item.href}>
-						<div className={`gap-1.5 flex items-center cursor-pointer hover:bg-card-foreground/10 border rounded-lg px-3 py-1.5 transition-colors
-                            ${pathname === item.href 
-                                ? 'border-card-foreground/10 shadow-xs bg-card-foreground/10' 
-							    : 'border-transparent bg-card-foreground/5'
-                            }`}
-						>
-							<item.icon className="size-4" />
-							<p className='font-medium text-sm pt-[0.1rem]'>{item.name}</p>
-						</div>
-					</Link>
-				))}
-			</div>
-		);
-	}
-
 	const getSidebar = () => {
 		return (
-			<div className="flex h-full flex-col border-r border-muted-foreground/20 bg-card px-6">
+			<div className="flex h-full flex-col border-r bg-card px-6">
 				{/* Fixed Header */}
-				<div className="flex h-12 shrink-0 items-center">
+				<div className="flex h-12 my-2 shrink-0 items-center">
 					<Logo className="self-center" />
 				</div>
 				
 				{/* Main Navigation Area */}
 				<nav className="flex h-[calc(100vh-3rem)] flex-col">
 					<ul role="list" className="flex h-full flex-col">
-						{/* Menu Items - Fixed */}
-						<li className="-mx-6">
-							<MenuItems />
-						</li>
-						
 						{/* Scrollable Requests Section */}
 						<div className="flex-1 -mx-6 min-h-0">
 							<div className="h-full overflow-y-auto">
@@ -143,7 +129,7 @@ export function Sidebar() {
 								) : (
 									Object.entries(groupedRequests).map(([date, _requests]) => (
 										<div key={date} className="date-group grid grid-cols-1 gap-y-2">
-											<h3 className="text-[0.7rem] font-semibold uppercase text-muted-foreground sticky top-0 bg-card py-1.5 px-6 border-y border-muted-foreground/10">{date}</h3>
+											<h3 className="text-[0.7rem] font-semibold uppercase text-muted-foreground sticky top-0 bg-card py-1.5 px-6 border-y">{date}</h3>
 											<div className="requests-cards grid grid-cols-1 gap-y-2 px-3 pb-3 pt-1">
 												{_requests.map((request) => (
 													<RequestCard key={request.id} request={request} />
@@ -208,13 +194,13 @@ export function Sidebar() {
 			</div>
 
 			{/* Mobile header */}
-			<div className="sticky top-0 z-40 flex items-center gap-x-6 px-4 py-4 shadow-xs sm:px-6 lg:hidden bg-card">
+			<div className="sticky top-0 z-40 flex items-center gap-x-4 px-4 py-6 sm:px-6 lg:hidden bg-card">
 				<button
 					type="button"
 					onClick={() => setSidebarOpen(true)}
 					className="-m-2.5 p-2.5 text-gray-700 lg:hidden">
 					<span className="sr-only">Open sidebar</span>
-					<Menu className="size-6" aria-hidden="true" />
+					<Menu className="size-5" aria-hidden="true" />
 				</button>
 				<Logo className="self-center" />
 			</div>
