@@ -33,7 +33,7 @@ export async function generate({request, currentQuestionsCount}: {request: Reque
         var instructionsCount = 0;
 
         const { elementStream } = streamObject({
-            model: openai("gpt-4o"),
+            model: openai("gpt-5.2"),
             schema: questionSchema,
             schemaName: 'question',
             schemaDescription: 'A high-quality question with 4 options, correct answer, explanation, and hint. All text fields support markdown formatting.',
