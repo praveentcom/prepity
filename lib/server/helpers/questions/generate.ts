@@ -30,33 +30,75 @@ export async function generate({request, currentQuestionsCount}: {request: Reque
     try {
         const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
-        var instructionsCount = 0;
-
         const { elementStream } = streamObject({
             model: openai("gpt-5.2"),
             schema: questionSchema,
             schemaName: 'question',
             schemaDescription: 'A high-quality question with 4 options, correct answer, explanation, and hint. All text fields support markdown formatting.',
             output: 'array',
-            prompt: `Generate ${initQuestionsCount - currentQuestionsCount} number of ${difficulty.toLowerCase()} difficulty questions about '${query.toLowerCase().replace(/questions (about|on|regarding|concerning|related to|with respect to|in relation to) /, '')}' for the category '${category}'.
+            prompt: `You are an expert educational content creator specializing in creating high-quality assessment questions. Generate ${initQuestionsCount - currentQuestionsCount} ${difficulty.toLowerCase()} difficulty multiple-choice questions about '${query.toLowerCase().replace(/questions (about|on|regarding|concerning|related to|with respect to|in relation to) /, '')}' for the category '${category}'.
 
-Instructions for generating high-quality questions:
-${++instructionsCount}. Use markdown formatting to improve readability:
-   - Use \`code blocks\` for code snippets
-   - Use *italics* and **bold** for emphasis
-   - Use mathematical notation when relevant (e.g. $E = mc^2$)
-   - Use bullet points and numbered lists where appropriate
-${++instructionsCount}. Make questions progressively more challenging within the chosen difficulty level
-${++instructionsCount}. Ensure options are distinct and plausible
-${++instructionsCount}. Write clear, concise explanations that help understanding
-${++instructionsCount}. Include hints that guide thinking without giving away the answer
-${++instructionsCount}. Use real-world examples and practical applications where possible
-${++instructionsCount}. For code-related questions, include proper syntax highlighting
-${++instructionsCount}. Maintain consistent formatting across all questions
-${++instructionsCount}. When adding equations, always use LATEX as format name for the type of the question and answer
-${++instructionsCount}. It's not necessary for both questionType and answerType to be LATEX, only use it when relevant
-${++instructionsCount}. Use the type as CODE when adding code snippets to the question or answer
-${++instructionsCount}. For any kind of markdown use, use the type as PLAINTEXT
+<difficulty_guidelines>
+- EASY: Test fundamental concepts, definitions, and basic recall. Focus on recognition and comprehension.
+- MEDIUM: Require application of concepts, analysis of scenarios, and connecting multiple ideas. Test understanding and problem-solving.
+- HARD: Demand synthesis, evaluation, and critical thinking. Include edge cases, complex scenarios, and multi-step reasoning.
+</difficulty_guidelines>
+
+<question_design>
+- COGNITIVE DEPTH: Questions should progress through Bloom's Taxonomy levels appropriate to difficulty:
+  * Easy: Remember, Understand
+  * Medium: Apply, Analyze
+  * Hard: Evaluate, Create
+- CLARITY & PRECISION: Write unambiguous questions that test specific knowledge points. Avoid trick questions or unnecessarily complex language.
+- REAL-WORLD RELEVANCE: Connect to practical applications, industry scenarios, or authentic contexts whenever possible.
+- DISTRACTOR QUALITY: All incorrect options must be plausible and reflect common misconceptions or partial understanding. Avoid obviously wrong answers.
+- QUESTION STEM: Ensure the question can stand alone without the options. Present a clear problem or scenario.
+- AVOID BIAS: Ensure questions are fair, culturally neutral, and don't include irrelevant difficulty factors.
+</question_design>
+
+<formatting>
+- MARKDOWN USAGE: Leverage markdown for enhanced readability:
+  * Use \`inline code\` for short code elements, variables, functions, commands
+  * Use \`\`\`language blocks\`\`\` for multi-line code with proper syntax highlighting
+  * Use **bold** for key terms and *italics* for emphasis
+  * Use > blockquotes for scenarios, requirements, or important context
+  * Use bullet points (-, *) or numbered lists (1., 2.) for structured information
+  * Use | tables | when comparing features or organizing data
+- MATHEMATICAL NOTATION: Use LaTeX for equations (e.g., $E = mc^2$, $\\int_0^\\infty e^{-x} dx$)
+- CODE PRESENTATION: Include proper syntax highlighting and ensure code is runnable or clearly pseudocode
+</formatting>
+
+<content_types>
+- Set questionType to LATEX when the question itself contains mathematical equations or formulas
+- Set answerType to LATEX when any answer option contains mathematical equations or formulas
+- Set questionType to CODE when the question presents a code snippet to analyze
+- Set answerType to CODE when answer options are code blocks or code snippets
+- Use PLAINTEXT for general text, markdown formatting, and non-specialized content
+- It's not necessary for both questionType and answerType to match - set them independently based on content
+</content_types>
+
+<explanations>
+- START WITH THE ANSWER: Begin by clearly stating why the correct option is right
+- EXPLAIN DISTRACTORS: Briefly address why each incorrect option is wrong or what misconception it represents
+- TEACH THE CONCEPT: Provide additional context, rules, or principles that help deepen understanding
+- USE EXAMPLES: Include relevant examples or analogies to solidify comprehension
+- KEEP IT STRUCTURED: Use headers, lists, or clear paragraphs for easy scanning
+</explanations>
+
+<hints>
+- GUIDE, DON'T REVEAL: Provide strategic direction without giving away the answer
+- FOCUS ON APPROACH: Suggest a thinking strategy, relevant concept, or elimination method
+- BE SPECIFIC ENOUGH: Offer more than vague encouragement - point to a concrete starting point
+- EXAMPLES: "Consider what happens to memory allocation in this scenario" or "Think about the time complexity of nested loops"
+</hints>
+
+<quality_assurance>
+- PROGRESSION: Make questions progressively more challenging within the difficulty level
+- DIVERSITY: Vary question formats - scenarios, code analysis, theoretical concepts, practical problems
+- CONSISTENCY: Maintain uniform formatting and quality standards across all questions
+- ACCURACY: Ensure technical correctness and up-to-date information
+- COMPLETENESS: Every question must have exactly 4 options, 1 correct answer, detailed explanation, and helpful hint
+</quality_assurance>
 `
         });
 
