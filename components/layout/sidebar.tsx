@@ -110,7 +110,7 @@ export function Sidebar() {
 
 	const getSidebar = () => {
 		return (
-			<div className="flex h-full flex-col border-r bg-card px-6">
+			<div className="flex h-full w-full flex-col border-r bg-card px-6">
 				{/* Fixed Header */}
 				<div className="flex h-12 my-2 shrink-0 items-center">
 					<Logo className="self-center" />
@@ -165,7 +165,7 @@ export function Sidebar() {
 				<div className="fixed inset-0 flex">
 					<DialogPanel
 						transition
-						className="relative mr-16 flex w-full max-w-xs flex-1 transform transition duration-300 ease-in-out data-closed:-translate-x-full">
+						className="relative mr-16 flex w-full max-w-sm flex-1 transform transition duration-300 ease-in-out data-closed:-translate-x-full">
 						{/* Mobile sidebar content */}
 						<TransitionChild>
 							<div className="absolute left-full top-0 flex w-16 justify-center pt-5 duration-300 ease-in-out data-closed:opacity-0">
@@ -194,7 +194,7 @@ export function Sidebar() {
 			</div>
 
 			{/* Mobile header */}
-			<div className="sticky top-0 z-40 flex items-center gap-x-4 px-4 py-6 sm:px-6 lg:hidden bg-card">
+			<div className="sticky top-0 z-40 flex items-center gap-x-4 p-4 sm:px-6 lg:hidden bg-card">
 				<button
 					type="button"
 					onClick={() => setSidebarOpen(true)}
