@@ -91,12 +91,14 @@ export default function GenerateQuestionsForm() {
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Focus Area</FormLabel>
-                            <Textarea 
-                                placeholder={CATEGORY_LIST.find(category => 
-                                    category.category === selectedCategory
-                                )?.placeholder || 'Questions about...'}
-                                {...field}
-                            />
+                            <FormControl>
+                                <Textarea 
+                                    placeholder={CATEGORY_LIST.find(category => 
+                                        category.category === selectedCategory
+                                    )?.placeholder || 'Questions about...'}
+                                    {...field}
+                                />
+                            </FormControl>
                             <FormDescription>
                                 Enter the focus area of the questions you want to generate. Be specific and add details about the exam level, course, etc. Similarly, for interview questions, add details about the role, company, etc.
                             </FormDescription>
@@ -136,23 +138,23 @@ export default function GenerateQuestionsForm() {
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Questions Count</FormLabel>
-                                <FormControl>
-                                    <Select 
-                                        onValueChange={(value) => field.onChange(parseInt(value))} 
-                                        defaultValue={field.value?.toString()}
-                                    >
+                                <Select 
+                                    onValueChange={(value) => field.onChange(parseInt(value))} 
+                                    defaultValue={field.value?.toString()}
+                                >
+                                    <FormControl>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select number of questions" />
                                         </SelectTrigger>
-                                        <SelectContent>
-                                            {[5, 10, 15, 20, 25, 30, 40, 50].map((num) => (
-                                                <SelectItem key={num} value={num.toString()}>
-                                                    {num} questions
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </FormControl>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {[5, 10, 15, 20, 25, 30, 40, 50].map((num) => (
+                                            <SelectItem key={num} value={num.toString()}>
+                                                {num} questions
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                                 <FormDescription>
                                     Choose how many questions to generate.
                                 </FormDescription>
