@@ -4,7 +4,6 @@ export default function Document() {
   return (
     <Html lang="en">
       <Head>
-        <title>Prepity | AI-Powered MCQ Questions Generator</title>
         <meta name="description" content="Prepity helps to generate MCQ questions for exams, interviews and for fun with the help of AI. It can create any kind of questions with ease and in seconds." />
         <meta property="og:title" content="Prepity | AI-Powered MCQ Questions Generator" />
         <meta property="og:description" content="Prepity helps to generate MCQ questions for exams, interviews and for fun with the help of AI. It can create any kind of questions with ease and in seconds." />
