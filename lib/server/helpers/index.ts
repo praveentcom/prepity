@@ -1,5 +1,5 @@
-import { questions } from "./questions";
+import { questions } from './questions';
 
 export const helpers = {
-    questions: questions
-}
+  questions: questions,
+};

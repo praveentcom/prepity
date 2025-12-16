@@ -35,20 +35,25 @@ export default async function handler(
       where: { requestId: request.id },
     });
 
-    const backgroundTask = helpers.questions.generate({ request, currentQuestionsCount }).execute()
+    const backgroundTask = helpers.questions
+      .generate({ request, currentQuestionsCount })
+      .execute()
       .then(async (questions) => {
         const newQuestionsCount = questions.length;
 
-        if (newQuestionsCount + currentQuestionsCount >= request.initQuestionsCount) {
+        if (
+          newQuestionsCount + currentQuestionsCount >=
+          request.initQuestionsCount
+        ) {
           await prisma.request.update({
             where: { id: request.id },
             data: { status: RequestStatus.CREATED },
           });
         } else if (newQuestionsCount + currentQuestionsCount > 0) {
-            await prisma.request.update({
-                where: { id: request.id },
-                data: { status: RequestStatus.PARTIALLY_CREATED },
-            });
+          await prisma.request.update({
+            where: { id: request.id },
+            data: { status: RequestStatus.PARTIALLY_CREATED },
+          });
         } else {
           await prisma.request.update({
             where: { id: request.id },

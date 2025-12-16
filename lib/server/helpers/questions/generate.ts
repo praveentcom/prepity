@@ -1,43 +1,88 @@
-import { AnswerType, Question, QuestionType, Request } from "@prisma/client";
-import { z } from "zod";
+import { AnswerType, Question, QuestionType, Request } from '@prisma/client';
+import { z } from 'zod';
 import { NoObjectGeneratedError, streamObject } from 'ai';
-import { createOpenAI } from "@ai-sdk/openai" 
-import { prisma } from "../../prisma";
+import { createOpenAI } from '@ai-sdk/openai';
+import { prisma } from '../../prisma';
 
-export async function generate({request, currentQuestionsCount}: {request: Request, currentQuestionsCount: number}): Promise<Question[]> {
-    const questions: Question[] = [];
-    
-    const { category, query, difficulty, initQuestionsCount } = request;
+export async function generate({
+  request,
+  currentQuestionsCount,
+}: {
+  request: Request;
+  currentQuestionsCount: number;
+}): Promise<Question[]> {
+  const questions: Question[] = [];
 
-    if (currentQuestionsCount >= initQuestionsCount) {
-        console.error("All questions already generated");
-        return questions;
-    }
+  const { category, query, difficulty, initQuestionsCount } = request;
 
-    const questionSchema = z.object({
-        question: z.string().describe('The question text. Can include markdown formatting for better readability.'),
-        option1: z.string().describe('First option. Can include markdown for formatting mathematical equations, code snippets, or lists.'),
-        option2: z.string().describe('Second option. Can include markdown for formatting mathematical equations, code snippets, or lists.'),
-        option3: z.string().describe('Third option. Can include markdown for formatting mathematical equations, code snippets, or lists.'),
-        option4: z.string().describe('Fourth option. Can include markdown for formatting mathematical equations, code snippets, or lists.'),
-        correctOption: z.number().min(1).max(4),
-        explanation: z.string().describe('Detailed explanation of the correct answer. Should use markdown for formatting to improve readability.'),
-        hint: z.string().describe('First hint that provides strategic direction without revealing the answer. Can include markdown formatting.'),
-        hint2: z.string().describe('Second hint that is more comprehensive and guides the user closer to the answer, making it easier. Can include markdown formatting.'),
-        questionType: z.enum(Object.values(QuestionType) as [string, ...string[]]).default(QuestionType.PLAINTEXT).describe('Specifies the format of the question.'),
-        answerType: z.enum(Object.values(AnswerType) as [string, ...string[]]).default(AnswerType.PLAINTEXT).describe('Specifies the format of the answer options.')
-    })
+  if (currentQuestionsCount >= initQuestionsCount) {
+    console.error('All questions already generated');
+    return questions;
+  }
 
-    try {
-        const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  const questionSchema = z.object({
+    question: z
+      .string()
+      .describe(
+        'The question text. Can include markdown formatting for better readability.'
+      ),
+    option1: z
+      .string()
+      .describe(
+        'First option. Can include markdown for formatting mathematical equations, code snippets, or lists.'
+      ),
+    option2: z
+      .string()
+      .describe(
+        'Second option. Can include markdown for formatting mathematical equations, code snippets, or lists.'
+      ),
+    option3: z
+      .string()
+      .describe(
+        'Third option. Can include markdown for formatting mathematical equations, code snippets, or lists.'
+      ),
+    option4: z
+      .string()
+      .describe(
+        'Fourth option. Can include markdown for formatting mathematical equations, code snippets, or lists.'
+      ),
+    correctOption: z.number().min(1).max(4),
+    explanation: z
+      .string()
+      .describe(
+        'Detailed explanation of the correct answer. Should use markdown for formatting to improve readability.'
+      ),
+    hint: z
+      .string()
+      .describe(
+        'First hint that provides strategic direction without revealing the answer. Can include markdown formatting.'
+      ),
+    hint2: z
+      .string()
+      .describe(
+        'Second hint that is more comprehensive and guides the user closer to the answer, making it easier. Can include markdown formatting.'
+      ),
+    questionType: z
+      .enum(Object.values(QuestionType) as [string, ...string[]])
+      .default(QuestionType.PLAINTEXT)
+      .describe('Specifies the format of the question.'),
+    answerType: z
+      .enum(Object.values(AnswerType) as [string, ...string[]])
+      .default(AnswerType.PLAINTEXT)
+      .describe('Specifies the format of the answer options.'),
+  });
 
-        const { elementStream } = streamObject({
-            model: openai("gpt-5.2"),
-            schema: questionSchema,
-            schemaName: 'question',
-            schemaDescription: 'A high-quality question with 4 options, correct answer, explanation, and two progressive hints. All text fields support markdown formatting.',
-            output: 'array',
-            prompt: `You are an expert educational content creator specializing in creating high-quality assessment questions. Generate ${initQuestionsCount - currentQuestionsCount} ${difficulty.toLowerCase()} difficulty multiple-choice questions about '${query.toLowerCase().replace(/questions (about|on|regarding|concerning|related to|with respect to|in relation to) /, '')}' for the category '${category}'.
+  try {
+    const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    const { elementStream } = streamObject({
+      model: openai('gpt-5.2'),
+      schema: questionSchema,
+      schemaName: 'question',
+      schemaDescription:
+        'A high-quality question with 4 options, correct answer, explanation, and two progressive hints. All text fields support markdown formatting.',
+      output: 'array',
+      prompt: `You are an expert educational content creator specializing in creating high-quality assessment questions. Generate ${initQuestionsCount - currentQuestionsCount} ${difficulty.toLowerCase()} difficulty multiple-choice questions about '${query.toLowerCase().replace(/questions (about|on|regarding|concerning|related to|with respect to|in relation to) /, '')}' for the category '${category}'.
 
 <difficulty_guidelines>
 - EASY: Test fundamental concepts, definitions, and basic recall. Focus on recognition and comprehension.
@@ -108,39 +153,47 @@ SECOND HINT (hint2):
 - ACCURACY: Ensure technical correctness and up-to-date information
 - COMPLETENESS: Every question must have exactly 4 options, 1 correct answer, detailed explanation, and two progressive hints
 </quality_assurance>
-`
-        });
+`,
+    });
 
-        for await (const element of elementStream) {
-            console.log({
-                ...element,
-                requestId: request.id,
-            })
-            const question = await prisma.question.create({
-                data: {
-                    ...element,
-                    requestId: request.id,
-                    questionType: element.question.includes('$') ? QuestionType.LATEX : element.questionType as QuestionType,
-                    answerType: element.option1.includes('$') || element.option2.includes('$') || element.option3.includes('$') || element.option4.includes('$') ? AnswerType.LATEX : element.answerType as AnswerType,
-                },
-            });
-            questions.push(question);
-        }
-
-        return questions;
-    } catch (error) {
-        console.error('Error generating questions:', error);
-        
-        if (NoObjectGeneratedError.isInstance(error)) {
-            console.log('NoObjectGeneratedError');
-            console.log('Cause:', error.cause);
-            console.log('Text:', error.text);
-            console.log('Response:', error.response);
-            console.log('Usage:', error.usage);
-        } else {
-            console.log('An unexpected error occurred:', error);
-        }
-
-        return [];
+    for await (const element of elementStream) {
+      console.log({
+        ...element,
+        requestId: request.id,
+      });
+      const question = await prisma.question.create({
+        data: {
+          ...element,
+          requestId: request.id,
+          questionType: element.question.includes('$')
+            ? QuestionType.LATEX
+            : (element.questionType as QuestionType),
+          answerType:
+            element.option1.includes('$') ||
+            element.option2.includes('$') ||
+            element.option3.includes('$') ||
+            element.option4.includes('$')
+              ? AnswerType.LATEX
+              : (element.answerType as AnswerType),
+        },
+      });
+      questions.push(question);
     }
+
+    return questions;
+  } catch (error) {
+    console.error('Error generating questions:', error);
+
+    if (NoObjectGeneratedError.isInstance(error)) {
+      console.log('NoObjectGeneratedError');
+      console.log('Cause:', error.cause);
+      console.log('Text:', error.text);
+      console.log('Response:', error.response);
+      console.log('Usage:', error.usage);
+    } else {
+      console.log('An unexpected error occurred:', error);
+    }
+
+    return [];
+  }
 }

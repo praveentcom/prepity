@@ -12,7 +12,9 @@ export default async function handler(
   try {
     const { questionId, answerId } = req.body;
     if (!questionId || !answerId) {
-      return res.status(400).json({ message: 'Question ID and Answer ID are required' });
+      return res
+        .status(400)
+        .json({ message: 'Question ID and Answer ID are required' });
     }
 
     const question = await prisma.question.findUnique({
@@ -20,7 +22,9 @@ export default async function handler(
     });
 
     if (question?.isAnswered) {
-      return res.status(400).json({ message: 'Question has already been answered' });
+      return res
+        .status(400)
+        .json({ message: 'Question has already been answered' });
     }
 
     const updatedQuestion = await prisma.question.update({

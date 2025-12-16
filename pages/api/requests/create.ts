@@ -5,7 +5,10 @@ import { z } from 'zod';
 
 const createRequestSchema = z.object({
   category: z.string().min(1, 'Category is required'),
-  focusArea: z.string().min(1, 'Focus area is required').max(200, 'Focus area must not exceed 200 characters'),
+  focusArea: z
+    .string()
+    .min(1, 'Focus area is required')
+    .max(200, 'Focus area must not exceed 200 characters'),
   difficulty: z.nativeEnum(Difficulty).default('MEDIUM'),
   initQuestionsCount: z.number().min(1).max(50).default(10),
   requestSlug: z.string().uuid(),
@@ -22,13 +25,19 @@ export default async function handler(
   try {
     const result = createRequestSchema.safeParse(req.body);
     if (!result.success) {
-      return res.status(400).json({ 
-        message: 'Invalid request data', 
-        errors: result.error.flatten().fieldErrors 
+      return res.status(400).json({
+        message: 'Invalid request data',
+        errors: result.error.flatten().fieldErrors,
       });
     }
 
-    const { category, focusArea: query, difficulty, initQuestionsCount, requestSlug } = result.data;
+    const {
+      category,
+      focusArea: query,
+      difficulty,
+      initQuestionsCount,
+      requestSlug,
+    } = result.data;
 
     const request = await prisma.request.create({
       data: {

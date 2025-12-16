@@ -11,13 +11,17 @@ export default async function handler(
 
   try {
     const { requestSlug, id } = req.query;
-    
+
     if (!requestSlug && !id) {
-      return res.status(400).json({ message: 'Request ID or slug is required' });
+      return res
+        .status(400)
+        .json({ message: 'Request ID or slug is required' });
     }
 
     const request = await prisma.request.findFirst({
-      where: id ? { id: parseInt(id as string) } : { requestSlug: requestSlug as string },
+      where: id
+        ? { id: parseInt(id as string) }
+        : { requestSlug: requestSlug as string },
     });
 
     if (!request) {

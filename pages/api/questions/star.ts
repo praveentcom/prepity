@@ -12,7 +12,9 @@ export default async function handler(
   try {
     const { questionId, star } = req.body;
     if (!questionId || typeof star !== 'boolean') {
-      return res.status(400).json({ message: 'Question ID and star status are required' });
+      return res
+        .status(400)
+        .json({ message: 'Question ID and star status are required' });
     }
 
     const updatedQuestion = await prisma.question.update({
