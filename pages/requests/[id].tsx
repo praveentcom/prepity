@@ -483,22 +483,7 @@ function Content({ initialRequest }: Props) {
                                                         {isSubmitting[question.id] ? 'Submitting...' : (question.userAnswer ? 'Submit and show answer' : 'Select an answer to submit')}
                                                     </Button> ) : null
                                             }
-                                            <Dialog>
-                                                <DialogTrigger asChild>
-                                                    <Button variant="secondary" className="w-max">
-                                                        <LightbulbIcon className="size-4" />
-                                                        Show hint
-                                                    </Button>
-                                                </DialogTrigger>
-                                                <DialogContent>
-                                                    <DialogHeader>
-                                                        <DialogTitle>
-                                                            <LightbulbIcon className="size-5" />
-                                                        </DialogTitle>
-                                                    </DialogHeader>
-                                                    <QuestionRenderer text={question.hint || ''} type={question.questionType} />
-                                                </DialogContent>
-                                            </Dialog>
+                                            <HintDialog question={question} />
                                         </div>
                                     </div>
                                 </CardContent>
@@ -573,6 +558,51 @@ function Content({ initialRequest }: Props) {
             </div>
         </div>
     )
+}
+
+function HintDialog({ question }: { question: Question }) {
+    const [showHint2, setShowHint2] = useState(false);
+
+    return (
+        <Dialog onOpenChange={(open) => { if (!open) setShowHint2(false); }}>
+            <DialogTrigger asChild>
+                <Button variant="secondary" className="w-max">
+                    <LightbulbIcon className="size-4" />
+                    Show hint
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <LightbulbIcon className="size-5" />
+                        Hint
+                    </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                    <div>
+                        <QuestionRenderer text={question.hint || ''} type={question.questionType} />
+                    </div>
+                    {!showHint2 && question.hint2 && (
+                        <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setShowHint2(true)}
+                            className="w-full"
+                        >
+                            <LightbulbIcon className="size-4" />
+                            Show second hint
+                        </Button>
+                    )}
+                    {showHint2 && question.hint2 && (
+                        <div className="pt-4 border-t">
+                            <h4 className="text-sm font-medium mb-2">Second Hint</h4>
+                            <QuestionRenderer text={question.hint2} type={question.questionType} />
+                        </div>
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
 }
 
 function QuestionRenderer({ text, type, small }: { text: string, type: QuestionType | AnswerType, small?: boolean }) {

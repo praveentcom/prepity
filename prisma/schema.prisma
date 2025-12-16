@@ -62,6 +62,7 @@ model Question {
   correctOption    Int      @db.SmallInt
   explanation      String?  @db.Text
   hint            String?  @db.Text
+  hint2           String?  @db.Text
   requestId       Int
   request         Request   @relation(fields: [requestId], references: [id], onDelete: Cascade)
   isStarred       Boolean  @default(false)

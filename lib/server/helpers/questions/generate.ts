@@ -22,7 +22,8 @@ export async function generate({request, currentQuestionsCount}: {request: Reque
         option4: z.string().describe('Fourth option. Can include markdown for formatting mathematical equations, code snippets, or lists.'),
         correctOption: z.number().min(1).max(4),
         explanation: z.string().describe('Detailed explanation of the correct answer. Should use markdown for formatting to improve readability.'),
-        hint: z.string().describe('A helpful hint that guides the user towards the answer without giving it away. Can include markdown formatting.'),
+        hint: z.string().describe('First hint that provides strategic direction without revealing the answer. Can include markdown formatting.'),
+        hint2: z.string().describe('Second hint that is more comprehensive and guides the user closer to the answer, making it easier. Can include markdown formatting.'),
         questionType: z.enum(Object.values(QuestionType) as [string, ...string[]]).default(QuestionType.PLAINTEXT).describe('Specifies the format of the question.'),
         answerType: z.enum(Object.values(AnswerType) as [string, ...string[]]).default(AnswerType.PLAINTEXT).describe('Specifies the format of the answer options.')
     })
@@ -34,7 +35,7 @@ export async function generate({request, currentQuestionsCount}: {request: Reque
             model: openai("gpt-5.2"),
             schema: questionSchema,
             schemaName: 'question',
-            schemaDescription: 'A high-quality question with 4 options, correct answer, explanation, and hint. All text fields support markdown formatting.',
+            schemaDescription: 'A high-quality question with 4 options, correct answer, explanation, and two progressive hints. All text fields support markdown formatting.',
             output: 'array',
             prompt: `You are an expert educational content creator specializing in creating high-quality assessment questions. Generate ${initQuestionsCount - currentQuestionsCount} ${difficulty.toLowerCase()} difficulty multiple-choice questions about '${query.toLowerCase().replace(/questions (about|on|regarding|concerning|related to|with respect to|in relation to) /, '')}' for the category '${category}'.
 
@@ -86,10 +87,18 @@ export async function generate({request, currentQuestionsCount}: {request: Reque
 </explanations>
 
 <hints>
+FIRST HINT (hint):
 - GUIDE, DON'T REVEAL: Provide strategic direction without giving away the answer
 - FOCUS ON APPROACH: Suggest a thinking strategy, relevant concept, or elimination method
 - BE SPECIFIC ENOUGH: Offer more than vague encouragement - point to a concrete starting point
 - EXAMPLES: "Consider what happens to memory allocation in this scenario" or "Think about the time complexity of nested loops"
+
+SECOND HINT (hint2):
+- MORE COMPREHENSIVE: Build upon the first hint with more detailed guidance
+- NARROW DOWN OPTIONS: Help eliminate incorrect answers or point to key distinguishing factors
+- CLOSER TO ANSWER: Provide more specific direction that makes solving easier, but still requires thinking
+- BRIDGE THE GAP: If the first hint points to a concept, the second hint should explain how to apply it
+- EXAMPLES: "In this scenario, automatic variables are stored on the stack, which gets deallocated when the function returns" or "Nested loops create O(n²) complexity - count how many times the inner loop executes"
 </hints>
 
 <quality_assurance>
@@ -97,7 +106,7 @@ export async function generate({request, currentQuestionsCount}: {request: Reque
 - DIVERSITY: Vary question formats - scenarios, code analysis, theoretical concepts, practical problems
 - CONSISTENCY: Maintain uniform formatting and quality standards across all questions
 - ACCURACY: Ensure technical correctness and up-to-date information
-- COMPLETENESS: Every question must have exactly 4 options, 1 correct answer, detailed explanation, and helpful hint
+- COMPLETENESS: Every question must have exactly 4 options, 1 correct answer, detailed explanation, and two progressive hints
 </quality_assurance>
 `
         });
