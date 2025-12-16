@@ -1,4 +1,3 @@
-import { getSession } from '@/lib/server/auth';
 import { prisma } from '@/lib/server/prisma';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { helpers } from '@/lib/server/helpers';
@@ -13,17 +12,11 @@ export default async function handler(
   }
 
   try {
-    const user = await getSession(req);
-    if (!user?.id) {
-      return res.status(401).json({ message: 'Not authenticated' });
-    }
-
     const { requestId } = req.body;
     if (!requestId) {
       return res.status(400).json({ message: 'Request ID is required' });
     }
 
-    // Get the request
     const request = await prisma.request.findUnique({
       where: { id: parseInt(requestId) },
     });
@@ -32,23 +25,16 @@ export default async function handler(
       return res.status(404).json({ message: 'Request not found' });
     }
 
-    if (request.userId !== user.id) {
-      return res.status(403).json({ message: 'Not authorized' });
-    }
-
-    // Update status to PROCESSING
     await prisma.request.update({
       where: { id: request.id },
       data: { status: RequestStatus.PROCESSING },
     });
 
-    // Start processing in the background
-    // Note: This is not waiting for completion
     const currentQuestionsCount = await prisma.question.count({
       where: { requestId: request.id },
     });
 
-    helpers.questions.generate({ user, request, currentQuestionsCount: currentQuestionsCount }).execute()
+    helpers.questions.generate({ request, currentQuestionsCount }).execute()
       .then(async (questions) => {
         const newQuestionsCount = questions.length;
 
@@ -77,10 +63,9 @@ export default async function handler(
         });
       });
 
-    // Return immediately while processing continues in background
     return res.status(200).json({ message: 'Processing started' });
   } catch (error) {
     console.error('Error processing request:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
-} 
+}

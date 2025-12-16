@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import GenerateQuestionsForm from '@/components/blocks/forms/generate-questions'
-import { useAuth } from '@/providers/auth-provider'
 import { AuthenticatedLayout } from '@/components/layout/authenticated-layout'
 
 export default function Home() {
@@ -14,14 +13,19 @@ export default function Home() {
 }
 
 export function Content() {
-    const { user } = useAuth()
+    const getGreeting = () => {
+        const hour = new Date().getHours()
+        if (hour < 12) return 'morning'
+        if (hour < 17) return 'afternoon'
+        return 'evening'
+    }
 
     return (
         <div className='flex flex-col gap-2'>
             <div className='flex flex-col'>
-                <h1 className='text-md font-medium'>Hey, {user?.name}.</h1>
+                <h1 className='text-md font-medium'>Good {getGreeting()}.</h1>
                 <p className='text-sm text-muted-foreground'>
-                    Good {new Date().getHours() > 12 ? 'afternoon' : 'morning'}, let's learn something new today.
+                    Learn something new today.
                 </p>
             </div>
             <hr className='my-3' />

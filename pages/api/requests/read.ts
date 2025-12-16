@@ -1,4 +1,3 @@
-import { getSession } from '@/lib/server/auth';
 import { prisma } from '@/lib/server/prisma';
 import { NextApiRequest, NextApiResponse } from 'next';
 
@@ -11,11 +10,6 @@ export default async function handler(
   }
 
   try {
-    const user = await getSession(req);
-    if (!user?.id) {
-      return res.status(401).json({ message: 'Not authenticated' });
-    }
-
     const { requestSlug, id } = req.query;
     
     if (!requestSlug && !id) {
@@ -23,13 +17,7 @@ export default async function handler(
     }
 
     const request = await prisma.request.findFirst({
-      where: {
-        ...(id ? { id: parseInt(id as string) } : { requestSlug: requestSlug as string }),
-        OR: [
-          { userId: user.id },
-          { visibility: 'PUBLIC' }
-        ],
-      },
+      where: id ? { id: parseInt(id as string) } : { requestSlug: requestSlug as string },
     });
 
     if (!request) {
@@ -41,4 +29,4 @@ export default async function handler(
     console.error('Error reading request:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
-} 
+}

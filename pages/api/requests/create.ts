@@ -1,4 +1,3 @@
-import { getSession } from '@/lib/server/auth';
 import { prisma } from '@/lib/server/prisma';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { Difficulty, RequestStatus } from '@prisma/client';
@@ -21,11 +20,6 @@ export default async function handler(
   }
 
   try {
-    const user = await getSession(req)
-    if (!user?.id) {
-      return res.status(401).json({ message: 'Not authenticated' })
-    }
-
     const result = createRequestSchema.safeParse(req.body);
     if (!result.success) {
       return res.status(400).json({ 
@@ -38,7 +32,6 @@ export default async function handler(
 
     const request = await prisma.request.create({
       data: {
-        userId: user.id,
         category,
         query,
         difficulty,

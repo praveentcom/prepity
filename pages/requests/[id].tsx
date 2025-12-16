@@ -513,7 +513,9 @@ function QuestionRenderer({ text, type, small }: { text: string, type: QuestionT
     } else if (type === 'PLAINTEXT') {
         if (text.includes('`') || text.includes('*')) {
             return <div className='prose'>
-                <Markdown className={small ? 'text-sm' : ''}>{text}</Markdown>
+                <Markdown components={{
+                    p: ({ children }) => <p className={small ? 'text-sm' : ''}>{children}</p>
+                }}>{text}</Markdown>
             </div>
         } else {
             return <p className={small ? 'text-sm' : ''}>{text}</p>

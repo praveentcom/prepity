@@ -1,4 +1,3 @@
-import { getSession } from '@/lib/server/auth';
 import { prisma } from '@/lib/server/prisma';
 import { NextApiRequest, NextApiResponse } from 'next';
 
@@ -11,18 +10,13 @@ export default async function handler(
   }
 
   try {
-    const user = await getSession(req);
-    if (!user?.id) {
-      return res.status(401).json({ message: 'Not authenticated' });
-    }
-
     const { requestSlug } = req.body;
     if (!requestSlug) {
       return res.status(400).json({ message: 'Request slug is required' });
     }
 
     const request = await prisma.request.findFirst({
-      where: { requestSlug, userId: user.id },
+      where: { requestSlug },
     });
 
     if (!request) {
@@ -39,4 +33,4 @@ export default async function handler(
     console.error('Error toggling star status:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
-} 
+}

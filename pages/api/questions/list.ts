@@ -1,4 +1,3 @@
-import { getSession } from '@/lib/server/auth';
 import { prisma } from '@/lib/server/prisma';
 import { NextApiRequest, NextApiResponse } from 'next';
 
@@ -11,11 +10,6 @@ export default async function handler(
   }
 
   try {
-    const user = await getSession(req);
-    if (!user?.id) {
-      return res.status(401).json({ message: 'Not authenticated' });
-    }
-
     const { requestId } = req.query;
     if (!requestId) {
       return res.status(400).json({ message: 'Request ID is required' });
@@ -36,4 +30,4 @@ export default async function handler(
     console.error('Error listing questions:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
-} 
+}

@@ -1,45 +1,9 @@
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
-}
-
-model User {
-  id             Int           @id @default(autoincrement())
-  name           String?
-  email          String        @unique
-  emailVerified  Boolean       @default(false)
-  password       String?
-  image          String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  signupTokens   SignupToken[]
-  passwordResetTokens PasswordResetToken[]
-  requests       Request[]
-  questions      Question[]
-  preference     UserPreference?
-}
-
-model SignupToken {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  token     String   @unique
-  expires   DateTime
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model PasswordResetToken {
-    id        Int      @id @default(autoincrement())
-    token     String   @unique
-    userId    Int
-    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-    expires   DateTime
-    createdAt DateTime @default(now())
-
-    @@index([userId])
 }
 
 enum RequestStatus {
@@ -75,8 +39,6 @@ enum AnswerType {
 
 model Request {
   id                 Int           @id @default(autoincrement())
-  userId             Int
-  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   category           String
   query              String       @db.Text
   status             RequestStatus @default(PENDING)
@@ -88,8 +50,6 @@ model Request {
   requestSlug        String       @unique
   isStarred          Boolean       @default(false)
   visibility         Visibility    @default(PRIVATE)
-
-  @@index([userId])
 }
 
 model Question {
@@ -99,33 +59,19 @@ model Question {
   option2          String
   option3          String
   option4          String
-  correctOption    Int      @db.SmallInt // 1-4 representing which option is correct
+  correctOption    Int      @db.SmallInt
   explanation      String?  @db.Text
   hint            String?  @db.Text
   requestId       Int
   request         Request   @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  userId          Int
-  user            User     @relation(fields: [userId], references: [id])
   isStarred       Boolean  @default(false)
   isAnswered      Boolean  @default(false)
-  userAnswer      Int?     @db.SmallInt // 1-4 representing user's answer
+  userAnswer      Int?     @db.SmallInt
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   answeredAt      DateTime?
   questionType    QuestionType
   answerType      AnswerType
 
-  @@index([userId])
   @@index([requestId])
-}
-
-model UserPreference {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  llmModel  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId])
 }

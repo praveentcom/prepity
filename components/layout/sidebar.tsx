@@ -7,18 +7,8 @@ import {
 	DialogPanel,
 	TransitionChild,
 } from '@headlessui/react';
-import { Menu, X, LogOut } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { Logo } from '@/components/atoms/logo';
-import md5 from 'md5';
-import { logout } from '@/lib/client/auth';
-import { useAuth } from '@/providers/auth-provider';
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from '@/components/ui/popover';
-import { Button } from '../ui/button';
-import Image from 'next/image';
 import packageInfo from '@/package.json';
 import { fetchRequests } from '@/lib/client/requests';
 import { Request } from '@prisma/client';
@@ -30,7 +20,6 @@ import { StarToggle } from '../ui/star-toggle';
 
 export function Sidebar() {
 	const [sidebarOpen, setSidebarOpen] = useState(false);
-	const { user, setUser } = useAuth();
 	const [requests, setRequests] = useState<Request[]>([]);
 	const router = useRouter();
 	const { id: activeRequestId } = router.query;
@@ -50,18 +39,6 @@ export function Sidebar() {
 		loadRequests();
 	}, []);
 
-	const getGravatarUrl = (email: string) => {
-        return `https://www.gravatar.com/avatar/${md5(email.toLowerCase())}?d=mp`
-    }
-
-	const handleLogout = async () => {
-		await logout();
-
-        setSidebarOpen(false);
-
-		setUser(null);
-	};
-
     const VersionInfo = () => (
 		<div className="flex w-full cursor-pointer items-center gap-x-3 px-4 py-2.5 hover:bg-muted border-t border-muted-foreground/10">
             <div className="flex flex-col text-left">
@@ -72,46 +49,6 @@ export function Sidebar() {
                 </span>
             </div>
         </div>
-	);
-
-    const UserMenu = () => (
-		<Popover>
-			<PopoverTrigger asChild>
-				<div className="flex w-full cursor-pointer items-center gap-x-3 px-4 py-2.5 hover:bg-muted border-t border-muted-foreground/10">
-					<Image
-						alt={user?.name || ''}
-						src={getGravatarUrl(user?.email || '')}
-						className="size-8 rounded-full bg-muted"
-						width={36}
-						height={36}
-					/>
-					<div className="flex flex-col text-left">
-						<span
-							className="text-sm font-medium"
-							aria-hidden="true">
-							{user?.name}
-						</span>
-						<span
-							className="text-xs text-muted-foreground truncate"
-							aria-hidden="true">
-							{user?.email}
-						</span>
-					</div>
-				</div>
-			</PopoverTrigger>
-
-			<PopoverContent className="w-max p-2">
-				<div className="min-w-48 max-w-48">
-					<Button
-						onClick={handleLogout}
-						variant="ghost"
-						className="w-full justify-start">
-						<LogOut />
-						Logout
-					</Button>
-				</div>
-			</PopoverContent>
-		</Popover>
 	);
 
 	const groupedRequests = useMemo(() => {
@@ -200,7 +137,7 @@ export function Sidebar() {
 						<div className="flex-1 -mx-6 min-h-0">
 							<div className="h-full overflow-y-auto">
 								{Object.entries(groupedRequests).length === 0 ? (
-									<div className="text-xs text-muted-foreground italic px-3 py-2">
+									<div className="text-xs text-muted-foreground px-4 py-2">
 										Generated question sets will be listed here once ready
 									</div>
 								) : (
@@ -221,7 +158,6 @@ export function Sidebar() {
 						{/* Fixed Footer */}
 						<li className="-mx-6 mt-auto">
 							<VersionInfo />
-							<UserMenu />
 						</li>
 					</ul>
 				</nav>

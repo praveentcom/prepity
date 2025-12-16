@@ -1,16 +1,11 @@
-import { AnswerType, Question, QuestionType, Request, User } from "@prisma/client";
+import { AnswerType, Question, QuestionType, Request } from "@prisma/client";
 import { z } from "zod";
 import { NoObjectGeneratedError, streamObject } from 'ai';
 import { createOpenAI } from "@ai-sdk/openai" 
 import { prisma } from "../../prisma";
 
-export async function generate({user, request, currentQuestionsCount}: {user: Partial<User>, request: Request, currentQuestionsCount: number}): Promise<Question[]> {
+export async function generate({request, currentQuestionsCount}: {request: Request, currentQuestionsCount: number}): Promise<Question[]> {
     const questions: Question[] = [];
-
-    if (!user.id) {
-        console.error("User ID is missing. Cannot generate questions.");
-        return questions;
-    }
     
     const { category, query, difficulty, initQuestionsCount } = request;
 
@@ -68,13 +63,11 @@ ${++instructionsCount}. For any kind of markdown use, use the type as PLAINTEXT
         for await (const element of elementStream) {
             console.log({
                 ...element,
-                userId: user.id,
                 requestId: request.id,
             })
             const question = await prisma.question.create({
                 data: {
                     ...element,
-                    userId: user.id,
                     requestId: request.id,
                     questionType: element.question.includes('$') ? QuestionType.LATEX : element.questionType as QuestionType,
                     answerType: element.option1.includes('$') || element.option2.includes('$') || element.option3.includes('$') || element.option4.includes('$') ? AnswerType.LATEX : element.answerType as AnswerType,
@@ -99,4 +92,4 @@ ${++instructionsCount}. For any kind of markdown use, use the type as PLAINTEXT
 
         return [];
     }
-} 
+}
