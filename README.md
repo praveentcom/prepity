@@ -4,7 +4,13 @@
 
 ## Environment Variables
 
-Create a `.env` file in the root directory with the following variables:
+Copy `.env.example` to `.env` and fill in the required values:
+
+```bash
+cp .env.example .env
+```
+
+Or manually create a `.env` file in the root directory with the following variables:
 
 ### Required
 
@@ -17,15 +23,4 @@ OPENAI_API_KEY="sk-..."
 
 # Base URL of the application
 NEXT_PUBLIC_BASE_URL="http://localhost:3000"
-```
-
-### Optional
-
-```env
-# Environment name (displayed in sidebar)
-NEXT_PUBLIC_ENVIRONMENT="development"
-
-# Umami Analytics (optional)
-NEXT_PUBLIC_UMAMI_HOST="https://your-umami-instance.com"
-NEXT_PUBLIC_UMAMI_WEBSITE_ID="your-website-id"
 ```

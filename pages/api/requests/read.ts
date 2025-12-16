@@ -28,7 +28,12 @@ export default async function handler(
       return res.status(404).json({ message: 'Request not found' });
     }
 
-    return res.status(200).json({ request });
+    const questions = await prisma.question.findMany({
+      where: { requestId: request.id },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return res.status(200).json({ request, questions });
   } catch (error) {
     console.error('Error reading request:', error);
     return res.status(500).json({ message: 'Internal server error' });

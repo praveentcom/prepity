@@ -48,6 +48,7 @@ import { StarToggle } from '@/components/ui/star-toggle';
 
 interface Props {
   initialRequest: Request;
+  initialQuestions: Question[];
 }
 
 const MAX_POLLING_ATTEMPTS = 75;
@@ -55,16 +56,27 @@ const POLLING_INTERVAL = 3000;
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const { id } = context.params || {};
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_BASE_URL}/api/requests/read?requestSlug=${id}`,
-    {
-      headers: {
-        cookie: context.req.headers.cookie || '',
-      },
-    }
-  );
+  
+  const [requestRes, sidebarRes] = await Promise.all([
+    fetch(
+      `${process.env.NEXT_PUBLIC_BASE_URL}/api/requests/read?requestSlug=${id}`,
+      {
+        headers: {
+          cookie: context.req.headers.cookie || '',
+        },
+      }
+    ),
+    fetch(
+      `${process.env.NEXT_PUBLIC_BASE_URL}/api/requests/list?limit=100`,
+      {
+        headers: {
+          cookie: context.req.headers.cookie || '',
+        },
+      }
+    ),
+  ]);
 
-  if (!res.ok) {
+  if (!requestRes.ok) {
     return {
       redirect: {
         destination: '/',
@@ -73,7 +85,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     };
   }
 
-  const { request } = await res.json();
+  const { request, questions } = await requestRes.json();
+  const sidebarData = sidebarRes.ok ? await sidebarRes.json() : { requests: [] };
 
   const startProcessing = async () => {
     try {
@@ -108,6 +121,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   return {
     props: {
       initialRequest: request,
+      initialQuestions: questions || [],
+      initialRequests: sidebarData.requests || [],
     },
   };
 };
@@ -129,28 +144,22 @@ const QuestionSkeleton = () => (
   </div>
 );
 
-export default function RequestPage({ initialRequest }: Props) {
-  return <Content initialRequest={initialRequest} />;
+export default function RequestPage({ initialRequest, initialQuestions }: Props) {
+  return <Content initialRequest={initialRequest} initialQuestions={initialQuestions} />;
 }
 
-function Content({ initialRequest }: Props) {
+function Content({ initialRequest, initialQuestions }: Props) {
   const [request, setRequest] = useState(initialRequest);
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState<Question[]>(initialQuestions);
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const fetchQuestions = async (requestId: number | string) => {
-    try {
-      const res = await fetch(`/api/questions/list?requestId=${requestId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setQuestions(data.questions);
-      }
-    } catch (error) {
-      console.error('Error fetching questions:', error);
-    }
-  };
+  useEffect(() => {
+    // Reset questions when route changes
+    setQuestions(initialQuestions);
+    setRequest(initialRequest);
+  }, [router.query.id]);
 
   useEffect(() => {
     var pollingAttempts = 0;
@@ -161,12 +170,15 @@ function Content({ initialRequest }: Props) {
         pollingAttempts < MAX_POLLING_ATTEMPTS
       ) {
         try {
-          await fetchQuestions(initialRequest.id);
-
           const res = await fetch(`/api/requests/read?id=${initialRequest.id}`);
           if (res.ok) {
             const data = await res.json();
             setRequest(data.request);
+            
+            // Update questions from the response
+            if (data.questions) {
+              setQuestions(data.questions);
+            }
 
             if (
               ![
@@ -188,10 +200,8 @@ function Content({ initialRequest }: Props) {
 
     if (initialRequest.status === RequestStatus.PROCESSING) {
       pollRequestAndQuestions();
-    } else {
-      fetchQuestions(initialRequest.id);
     }
-  }, [router.query]);
+  }, [initialRequest.id, initialRequest.status]);
 
   const toggleStarStatus = async () => {
     const previousState = request.isStarred;
@@ -433,92 +443,146 @@ function Content({ initialRequest }: Props) {
                           question.option4,
                         ];
 
-                        return (
-                          <button
-                            key={optionNum}
-                            className={buttonClass}
-                            disabled={question.isAnswered}
-                            onClick={async () => {
-                              if (!question.isAnswered) {
-                                try {
-                                  const res = await fetch(
-                                    '/api/questions/submit-answer',
-                                    {
-                                      method: 'POST',
-                                      headers: {
-                                        'Content-Type': 'application/json',
-                                      },
-                                      body: JSON.stringify({
-                                        questionId: question.id,
-                                        answerId: optionNum,
-                                      }),
-                                    }
-                                  );
+                         return (
+                           <button
+                             key={optionNum}
+                             className={buttonClass}
+                             disabled={question.isAnswered}
+                             onClick={async () => {
+                               if (!question.isAnswered) {
+                                 setQuestions((prevQuestions) =>
+                                   prevQuestions.map((q) =>
+                                     q.id === question.id
+                                       ? {
+                                           ...q,
+                                           userAnswer: optionNum,
+                                           isAnswered: true,
+                                           answeredAt: new Date(),
+                                         }
+                                       : q
+                                   )
+                                 );
 
-                                  if (res.ok) {
-                                    await fetchQuestions(initialRequest.id);
+                                 try {
+                                   const res = await fetch(
+                                     '/api/questions/submit-answer',
+                                     {
+                                       method: 'POST',
+                                       headers: {
+                                         'Content-Type': 'application/json',
+                                       },
+                                       body: JSON.stringify({
+                                         questionId: question.id,
+                                         answerId: optionNum,
+                                       }),
+                                     }
+                                   );
 
-                                    const { pendingQuestionsForAnswersCount } =
-                                      await res.json();
+                                   if (res.ok) {
+                                     const { pendingQuestionsForAnswersCount } =
+                                       await res.json();
 
-                                    if (question.correctOption !== optionNum) {
-                                      const wrongQuestions = questions.filter(
-                                        (q) =>
-                                          q.isAnswered &&
-                                          q.correctOption !== q.userAnswer
-                                      ).length;
-                                      if (wrongQuestions === 2) {
-                                        toast({
-                                          title: 'Patience is the key 🔑',
-                                          description:
-                                            "Use the hint button before submitting the answer if you're stuck.",
-                                          variant: 'default',
-                                          duration: 10000,
-                                        });
-                                      }
-                                    }
+                                     if (question.correctOption !== optionNum) {
+                                       setQuestions((prevQuestions) => {
+                                         const wrongQuestions =
+                                           prevQuestions.filter(
+                                             (q) =>
+                                               q.isAnswered &&
+                                               q.correctOption !== q.userAnswer
+                                           ).length;
+                                         if (wrongQuestions === 3) {
+                                           toast({
+                                             title: 'Patience is the key 🔑',
+                                             description:
+                                               "Use the hint button before submitting the answer if you're stuck.",
+                                             variant: 'default',
+                                             duration: 10000,
+                                           });
+                                         }
+                                         return prevQuestions;
+                                       });
+                                     }
 
-                                    if (pendingQuestionsForAnswersCount === 0) {
-                                      if (
-                                        questions.every(
-                                          (q) =>
-                                            q.correctOption === q.userAnswer
-                                        )
-                                      ) {
-                                        toast({
-                                          title:
-                                            "All correct, you're amazing! 🥳",
-                                          description:
-                                            'You can now see the answers and explanations. Keep up the good work, generate more questions to practice!',
-                                          variant: 'default',
-                                          duration: 10000,
-                                        });
-                                      } else {
-                                        toast({
-                                          title: 'All questions answered 🎉',
-                                          description:
-                                            "You've answered all the questions. You can now see the answers and explanations, and generate more to practice!",
-                                          variant: 'default',
-                                          duration: 10000,
-                                        });
-                                      }
-                                    }
-                                  }
-                                } catch (error) {
-                                  console.error(
-                                    'Error submitting answer:',
-                                    error
-                                  );
-                                }
-                              }
-                            }}
-                          >
-                            <QuestionRenderer
-                              text={options[optionNum - 1]}
-                              type={question.answerType}
-                            />
-                          </button>
-                        );
+                                     if (pendingQuestionsForAnswersCount === 0) {
+                                       setQuestions((prevQuestions) => {
+                                         const allCorrect = prevQuestions.every(
+                                           (q) =>
+                                             q.correctOption === q.userAnswer
+                                         );
+                                         if (allCorrect) {
+                                           toast({
+                                             title:
+                                               "All correct, you're amazing! 🥳",
+                                             description:
+                                               'You can now see the answers and explanations. Keep up the good work, generate more questions to practice!',
+                                             variant: 'default',
+                                             duration: 10000,
+                                           });
+                                         } else {
+                                           toast({
+                                             title: 'All questions answered 🎉',
+                                             description:
+                                               "You've answered all the questions. You can now see the answers and explanations, and generate more to practice!",
+                                             variant: 'default',
+                                             duration: 10000,
+                                           });
+                                         }
+                                         return prevQuestions;
+                                       });
+                                     }
+                                   } else {
+                                     setQuestions((prevQuestions) =>
+                                       prevQuestions.map((q) =>
+                                         q.id === question.id
+                                           ? {
+                                               ...q,
+                                               userAnswer: null,
+                                               isAnswered: false,
+                                               answeredAt: null,
+                                             }
+                                           : q
+                                       )
+                                     );
+                                     toast({
+                                       title: 'Failed to submit answer',
+                                       description:
+                                         'Please try again or refresh the page.',
+                                       variant: 'destructive',
+                                     });
+                                   }
+                                 } catch (error) {
+                                   console.error(
+                                     'Error submitting answer:',
+                                     error
+                                   );
+                                   setQuestions((prevQuestions) =>
+                                     prevQuestions.map((q) =>
+                                       q.id === question.id
+                                         ? {
+                                             ...q,
+                                             userAnswer: null,
+                                             isAnswered: false,
+                                             answeredAt: null,
+                                           }
+                                         : q
+                                     )
+                                   );
+                                   toast({
+                                     title: 'Error submitting answer',
+                                     description:
+                                       'Network error. Please check your connection and try again.',
+                                     variant: 'destructive',
+                                   });
+                                 }
+                               }
+                             }}
+                           >
+                             <QuestionRenderer
+                               text={options[optionNum - 1]}
+                               type={question.answerType}
+                             />
+                           </button>
+                         )
                       })}
                     </div>
                     {!question.isAnswered && (

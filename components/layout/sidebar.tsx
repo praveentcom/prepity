@@ -7,7 +7,7 @@ import {
   DialogPanel,
   TransitionChild,
 } from '@headlessui/react';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Loader2 } from 'lucide-react';
 import { Logo } from '@/components/atoms/logo';
 import packageInfo from '@/package.json';
 import { fetchRequests } from '@/lib/client/requests';
@@ -17,31 +17,55 @@ import { CATEGORY_LIST, MENU_ITEMS } from '@/lib/client/constants';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { StarToggle } from '../ui/star-toggle';
+import { useRequests } from '@/lib/client/contexts/requests-context';
 
 export function Sidebar() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [requests, setRequests] = useState<Request[]>([]);
+  const { requests, setRequests, isLoading, setIsLoading } = useRequests();
   const router = useRouter();
   const { id: activeRequestId } = router.query;
 
   useEffect(() => {
+    if (requests.length > 0) {
+      localStorage.setItem('requests', JSON.stringify(requests));
+      return;
+    }
+
     const storedRequests = localStorage.getItem('requests');
     if (storedRequests) {
-      setRequests(JSON.parse(storedRequests));
+      try {
+        const parsed = JSON.parse(storedRequests);
+        setRequests(parsed);
+      } catch (error) {
+        console.error('Error parsing stored requests:', error);
+      }
     }
 
     const loadRequests = async () => {
-      const data = await fetchRequests(100);
-      setRequests(data);
-
-      localStorage.setItem('requests', JSON.stringify(data));
+      setIsLoading(true);
+      try {
+        const data = await fetchRequests(100);
+        setRequests(data);
+        localStorage.setItem('requests', JSON.stringify(data));
+      } catch (error) {
+        console.error('Error loading requests:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
     loadRequests();
+  }, []);
 
+  useEffect(() => {
     const handleRequestsUpdated = () => {
       const updatedRequests = localStorage.getItem('requests');
       if (updatedRequests) {
-        setRequests(JSON.parse(updatedRequests));
+        try {
+          const parsed = JSON.parse(updatedRequests);
+          setRequests(parsed);
+        } catch (error) {
+          console.error('Error parsing updated requests:', error);
+        }
       }
     };
     window.addEventListener('requests-updated', handleRequestsUpdated);
@@ -49,7 +73,7 @@ export function Sidebar() {
     return () => {
       window.removeEventListener('requests-updated', handleRequestsUpdated);
     };
-  }, []);
+  }, [setRequests]);
 
   useEffect(() => {
     if (requests.length > 0) {
@@ -141,7 +165,11 @@ export function Sidebar() {
             {/* Scrollable Requests Section */}
             <div className="flex-1 -mx-6 min-h-0">
               <div className="h-full overflow-y-auto">
-                {Object.entries(groupedRequests).length === 0 ? (
+                {isLoading && requests.length === 0 ? (
+                  <div className="flex items-center justify-center py-8 px-4">
+                    <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : Object.entries(groupedRequests).length === 0 ? (
                   <div className="text-xs text-muted-foreground px-4 py-2">
                     Generated question sets will be listed here once ready
                   </div>

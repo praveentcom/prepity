@@ -40,14 +40,6 @@ export default function Document() {
         />
         <meta name="apple-mobile-web-app-title" content="Prepity" />
         <link rel="manifest" href="/images/favicon/manifest.json" />
-        {process.env.NEXT_PUBLIC_UMAMI_HOST &&
-          process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID && (
-            <script
-              defer
-              src={`${process.env.NEXT_PUBLIC_UMAMI_HOST}/script.js`}
-              data-website-id={process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID}
-            ></script>
-          )}
       </Head>
       <body className="antialiased h-full bg-muted">
         <Main />
