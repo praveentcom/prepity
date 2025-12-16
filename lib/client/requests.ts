@@ -10,4 +10,17 @@ export async function fetchRequests(limit: number): Promise<Request[]> {
         console.error('Error fetching requests:', error);
         return [];
     }
+}
+
+export async function deleteRequest(requestSlug: string): Promise<boolean> {
+    try {
+        const response = await fetch(`/api/requests/delete?requestSlug=${requestSlug}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('Failed to delete request');
+        return true;
+    } catch (error) {
+        console.error('Error deleting request:', error);
+        return false;
+    }
 } 

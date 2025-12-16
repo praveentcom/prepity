@@ -4,7 +4,7 @@ import { AuthenticatedLayout } from '@/components/layout/authenticated-layout';
 import { Request, Question, RequestStatus, QuestionType, AnswerType } from '@prisma/client';
 import { useRouter } from 'next/router';
 import { Button } from '@/components/ui/button';
-import { CheckIcon, HourglassIcon, LightbulbIcon, StarIcon, Loader2, LibraryBig, Brain, CalendarCheck2, Hourglass, ChartBar, CloudAlert } from 'lucide-react';
+import { CheckIcon, HourglassIcon, LightbulbIcon, StarIcon, Loader2, LibraryBig, Brain, CalendarCheck2, Hourglass, ChartBar, CloudAlert, Trash2 } from 'lucide-react';
 import _ from 'lodash';
 import {
 	Dialog,
@@ -12,7 +12,11 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
+	DialogDescription,
+	DialogFooter,
+	DialogClose,
 } from "@/components/ui/dialog";
+import { deleteRequest } from '@/lib/client/requests';
 import 'katex/dist/katex.min.css';
 import Latex from 'react-latex-next';
 import Markdown from 'react-markdown';
@@ -112,6 +116,8 @@ function Content({ initialRequest }: Props) {
 	const [loadingQuestionId, setLoadingQuestionId] = useState<number | null>(null);
     const [loadingAnswerId, setLoadingAnswerId] = useState<number | null>(null);
     const [isSubmitting, setIsSubmitting] = useState<{ [key: number]: boolean }>({});
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
     const fetchQuestions = async (requestId: number | string) => {
         try {
@@ -165,6 +171,11 @@ function Content({ initialRequest }: Props) {
 	}, [router.query]);
 
     const toggleStarStatus = async () => {
+        const previousState = request.isStarred;
+        const newState = !previousState;
+        
+        setRequest(prev => ({ ...prev, isStarred: newState }));
+        
         try {
             const res = await fetch('/api/requests/star', {
                 method: 'PATCH',
@@ -173,23 +184,21 @@ function Content({ initialRequest }: Props) {
                 },
                 body: JSON.stringify({ requestSlug: request.requestSlug }),
             });
-            if (res.ok) {
-                const updatedRequest = await res.json();
-                setRequest(updatedRequest);
-
-                toast({
-                    title: `✅ Question set ${updatedRequest.isStarred ? 'starred' : 'unstarred'}`,
-                    description: `Request completed successfully.`,
-                    variant: 'default',
-                    duration: 5000,
-                });
+            if (!res.ok) {
+                throw new Error('Failed to update star status');
             }
         } catch (error) {
+            setRequest(prev => ({ ...prev, isStarred: previousState }));
             console.error('Error toggling star status:', error);
+            throw error;
         }
     };
 
     const toggleQuestionStarStatus = async (questionId: number, star: boolean) => {
+        setQuestions(prevQuestions => prevQuestions.map(q => 
+            q.id === questionId ? { ...q, isStarred: star } : q
+        ));
+        
         try {
             const res = await fetch('/api/questions/star', {
                 method: 'PATCH',
@@ -198,19 +207,53 @@ function Content({ initialRequest }: Props) {
                 },
                 body: JSON.stringify({ questionId, star }),
             });
-            if (res.ok) {
-                const updatedQuestion = await res.json();
-                setQuestions(prevQuestions => prevQuestions.map(q => q.id === questionId ? { ...q, isStarred: updatedQuestion.question.isStarred } : q));
+            if (!res.ok) {
+                throw new Error('Failed to update star status');
+            }
+        } catch (error) {
+            setQuestions(prevQuestions => prevQuestions.map(q => 
+                q.id === questionId ? { ...q, isStarred: !star } : q
+            ));
+            console.error('Error toggling question star status:', error);
+            throw error;
+        }
+    };
 
+    const handleDeleteRequest = async () => {
+        setIsDeleting(true);
+        try {
+            const success = await deleteRequest(request.requestSlug);
+            if (success) {
+                const storedRequests = localStorage.getItem('requests');
+                if (storedRequests) {
+                    const requests = JSON.parse(storedRequests);
+                    const updatedRequests = requests.filter((r: Request) => r.requestSlug !== request.requestSlug);
+                    localStorage.setItem('requests', JSON.stringify(updatedRequests));
+                }
+                
                 toast({
-                    title: `✅ Question ${updatedQuestion.question.isStarred ? 'starred' : 'unstarred'}`,
-                    description: `Request completed successfully.`,
-                    variant: 'default',
-                    duration: 5000,
+                    title: "Request deleted",
+                    description: "The request and all its questions have been deleted.",
+                    variant: "default",
+                });
+                router.push('/');
+            } else {
+                toast({
+                    title: "Error",
+                    description: "Failed to delete the request. Please try again.",
+                    variant: "destructive",
                 });
             }
         } catch (error) {
-            console.error('Error toggling question star status:', error);
+            console.error('Error deleting request:', error);
+            toast({
+                title: "Error",
+                description: "An unexpected error occurred. Please try again.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsDeleting(false);
+            setDeleteDialogOpen(false);
         }
     };
 
@@ -221,12 +264,51 @@ function Content({ initialRequest }: Props) {
                     {initialRequest.query}
                     <StarToggle isStarred={request.isStarred} onToggle={toggleStarStatus} />
                 </h1>
-                {(request.status === RequestStatus.PROCESSING) && (
-                    <Badge variant="default" className='flex text-xs items-center gap-1 animate-pulse'>
-                        <Hourglass className='size-3' />
-                        Generating questions ({questions.length}/{initialRequest.initQuestionsCount})...
-                    </Badge>
-                )}
+                <div className="flex items-center gap-2">
+                    {(request.status === RequestStatus.PROCESSING) && (
+                        <Badge variant="default" className='flex text-xs items-center gap-1 animate-pulse'>
+                            <Hourglass className='size-3' />
+                            Generating questions ({questions.length}/{initialRequest.initQuestionsCount})...
+                        </Badge>
+                    )}
+                    <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive">
+                                <Trash2 className="size-4" />
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Delete this request?</DialogTitle>
+                                <DialogDescription>
+                                    This will permanently delete this request and all {questions.length > 0 ? questions.length : initialRequest.initQuestionsCount} questions associated with it. This action cannot be undone.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter className="gap-2 sm:gap-0">
+                                <DialogClose asChild>
+                                    <Button variant="outline">Cancel</Button>
+                                </DialogClose>
+                                <Button 
+                                    variant="destructive" 
+                                    onClick={handleDeleteRequest}
+                                    disabled={isDeleting}
+                                >
+                                    {isDeleting ? (
+                                        <>
+                                            <Loader2 className="size-4 animate-spin" />
+                                            Deleting...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Trash2 className="size-4" />
+                                            Delete
+                                        </>
+                                    )}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </div>
             </div>
             <hr />
             <div className='flex flex-col md:flex-row gap-2 w-max'>

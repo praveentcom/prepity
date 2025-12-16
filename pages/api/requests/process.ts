@@ -2,6 +2,7 @@ import { prisma } from '@/lib/server/prisma';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { helpers } from '@/lib/server/helpers';
 import { RequestStatus } from '@prisma/client';
+import { waitUntil } from '@vercel/functions';
 
 export default async function handler(
   req: NextApiRequest,
@@ -34,7 +35,7 @@ export default async function handler(
       where: { requestId: request.id },
     });
 
-    helpers.questions.generate({ request, currentQuestionsCount }).execute()
+    const backgroundTask = helpers.questions.generate({ request, currentQuestionsCount }).execute()
       .then(async (questions) => {
         const newQuestionsCount = questions.length;
 
@@ -62,6 +63,8 @@ export default async function handler(
           data: { status: RequestStatus.FAILED },
         });
       });
+
+    waitUntil(backgroundTask);
 
     return res.status(200).json({ message: 'Processing started' });
   } catch (error) {
