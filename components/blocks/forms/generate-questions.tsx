@@ -13,22 +13,17 @@ import router from "next/router";
 import { CATEGORY_LIST } from "@/lib/client/constants";
 
 const generateQuestionsSchema = z.object({
-    category: z.string({
-        required_error: "Please select a category",
-    }).refine((value) => CATEGORY_LIST.some((category) => category.category === value), {
-        message: "Invalid category",
-    }),
-    focusArea: z.string({
-        required_error: "Please enter a focus area",
-    }).min(10, {
-        message: "Focus area must be at least 10 characters long",
-    }).max(200, { message: "Focus area must not exceed 200 characters" }),
-    difficulty: z.enum(['EASY', 'MEDIUM', 'HARD'], {
-        required_error: "Please select a difficulty level",
-    }).default('MEDIUM'),
-    initQuestionsCount: z.number({
-        required_error: "Please enter number of questions",
-    }).min(1).max(50).default(10),
+    category: z.string({ error: "Please select a category" })
+        .min(1, { message: "Please select a category" })
+        .refine((value) => CATEGORY_LIST.some((category) => category.category === value), {
+            message: "Invalid category",
+        }),
+    focusArea: z.string({ error: "Please enter a focus area" })
+        .min(10, { message: "Focus area must be at least 10 characters long" })
+        .max(200, { message: "Focus area must not exceed 200 characters" }),
+    difficulty: z.enum(['EASY', 'MEDIUM', 'HARD'], { error: "Please select a difficulty level" }),
+    initQuestionsCount: z.number({ error: "Please enter number of questions" })
+        .min(1).max(50),
 });
 
 export default function GenerateQuestionsForm() {
