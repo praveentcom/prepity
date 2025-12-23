@@ -19,6 +19,8 @@ pnpm prisma:push
 pnpm dev
 ```
 
+Running `pnpm prisma:push` will create the necessary tables in your database. It's not required to run this command again after the first deployment unless you want to make any changes to the schema.
+
 ## How to deploy?
 
 To deploy the application to a server, follow the pre-requisites as mentioned in the previous section. Once you're ready, you can follow the steps below to deploy the application.
