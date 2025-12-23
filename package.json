@@ -1,6 +1,6 @@
 {
   "name": "prepity",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "postinstall": "prisma generate --config prisma/prisma.config.ts",
