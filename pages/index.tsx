@@ -51,7 +51,7 @@ export default function Home() {
     <div className="grid gap-6">
       <Card className="w-full max-w-3xl">
         <CardHeader>
-          <CardTitle>Generate questions to practice</CardTitle>
+          <CardTitle>Generate questions</CardTitle>
           <CardDescription>
             Choose your category and specify your focus area to generate
             practice questions.
@@ -61,7 +61,7 @@ export default function Home() {
           <GenerateQuestionsForm />
         </CardContent>
         <CardFooter>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground/50">
             Questions are generated based on available information from the
             internet and LLM model ability. Excercise caution when using
             questions generated and report any issues. Questions generated will

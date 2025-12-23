@@ -169,7 +169,7 @@ export function Sidebar() {
     return (
       <div className="flex size-full flex-col border-r bg-sidebar px-6">
         {/* Fixed Header */}
-        <div className="flex items-center justify-between my-3">
+        <div className="flex items-center justify-between my-4 -mr-3">
           <Logo />
           <ThemeSwitcher />
         </div>
@@ -236,7 +236,7 @@ export function Sidebar() {
           >
             {/* Mobile sidebar content */}
             <TransitionChild>
-              <div className="absolute left-full top-0 flex w-16 justify-center py-3 duration-300 ease-in-out data-closed:opacity-0">
+              <div className="absolute left-full top-0 flex w-16 justify-center py-4 duration-300 ease-in-out data-closed:opacity-0">
                 <Button
                   onClick={() => setSidebarOpen(false)}
                   variant="ghost"
@@ -268,7 +268,7 @@ export function Sidebar() {
             <span className="sr-only">Open sidebar</span>
             <Menu className="size-5" aria-hidden="true" />
           </button>
-          <Logo className="self-center" />
+          <Logo />
         </div>
         <ThemeSwitcher />
       </div>
