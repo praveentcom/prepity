@@ -3,6 +3,12 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { Difficulty, RequestStatus } from '@prisma/client';
 import { z } from 'zod';
 
+/**
+ * Create request schema
+ * This schema is used to validate the request data.
+ *
+ * @returns The create request schema
+ */
 const createRequestSchema = z.object({
   category: z.string().min(1, 'Category is required'),
   focusArea: z
@@ -14,6 +20,16 @@ const createRequestSchema = z.object({
   requestSlug: z.string().uuid(),
 });
 
+/**
+ * Create API handler
+ *
+ * This API handler is used to create a new request.
+ * It will create a new request with the given data.
+ *
+ * @param req - The request object
+ * @param res - The response object
+ * @returns The response object
+ */
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse

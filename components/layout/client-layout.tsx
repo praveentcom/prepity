@@ -2,16 +2,16 @@
 
 import { Sidebar } from './sidebar';
 
-interface LayoutProps {
+interface ClientLayoutProps {
   children: React.ReactNode;
 }
 
-export function AuthenticatedLayout({ children }: LayoutProps) {
+export function ClientLayout({ children }: ClientLayoutProps) {
   return (
     <>
       <Sidebar />
       <div className="lg:pl-72">
-        <div className="p-4 sm:p-6">{children}</div>
+        <div className="p-6">{children}</div>
       </div>
     </>
   );

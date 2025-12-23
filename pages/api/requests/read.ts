@@ -1,6 +1,15 @@
 import { prisma } from '@/lib/server/prisma';
 import { NextApiRequest, NextApiResponse } from 'next';
 
+/**
+ * Read API handler
+ *
+ * This API handler is used to read a request by its ID or slug.
+ *
+ * @param req - The request object
+ * @param res - The response object
+ * @returns The response object
+ */
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse

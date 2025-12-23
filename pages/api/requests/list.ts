@@ -1,6 +1,16 @@
 import { prisma } from '@/lib/server/prisma';
 import { NextApiRequest, NextApiResponse } from 'next';
 
+/**
+ * List API handler
+ *
+ * This API handler is used to list all requests.
+ * It will return a paginated list of requests.
+ *
+ * @param req - The request object
+ * @param res - The response object
+ * @returns The response object
+ */
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse

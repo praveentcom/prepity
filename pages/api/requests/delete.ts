@@ -1,6 +1,16 @@
 import { prisma } from '@/lib/server/prisma';
 import { NextApiRequest, NextApiResponse } from 'next';
 
+/**
+ * Delete API handler
+ *
+ * This API handler is used to delete a request by its slug.
+ * It will delete the request and all its questions.
+ *
+ * @param req - The request object
+ * @param res - The response object
+ * @returns The response object
+ */
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse

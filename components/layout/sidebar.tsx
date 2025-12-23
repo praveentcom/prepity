@@ -9,21 +9,29 @@ import {
 } from '@headlessui/react';
 import { Menu, X, Loader2 } from 'lucide-react';
 import { Logo } from '@/components/atoms/logo';
+import { ThemeSwitcher } from '@/components/atoms/theme-switcher';
 import packageInfo from '@/package.json';
 import { fetchRequests } from '@/lib/client/requests';
 import { Request } from '@prisma/client';
 import moment from 'moment';
-import { CATEGORY_LIST, MENU_ITEMS } from '@/lib/client/constants';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { StarToggle } from '../ui/star-toggle';
+import { IconToggle } from '../ui/icon-toggle';
 import { useRequests } from '@/lib/client/contexts/requests-context';
+import { Button } from '../ui/button';
 
+/**
+ * Sidebar component for the Prepity application.
+ *
+ * It is used to display the sidebar menu and the requests cards in desktop and mobile views.
+ * It also fetches the requests from the database and stores them in the local storage.
+ */
 export function Sidebar() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { requests, setRequests, isLoading, setIsLoading } = useRequests();
   const router = useRouter();
+  const { requests, setRequests, isLoading, setIsLoading } = useRequests();
+
   const { id: activeRequestId } = router.query;
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (requests.length > 0) {
@@ -84,6 +92,12 @@ export function Sidebar() {
     }
   }, [requests, router]);
 
+  /**
+   * VersionInfo component for the Prepity application.
+   *
+   * It is used to display the version information of the application.
+   * @returns The VersionInfo component
+   */
   const VersionInfo = () => (
     <div className="flex w-full cursor-pointer items-center gap-x-3 px-4 py-2.5 hover:bg-muted border-t">
       <div className="flex flex-col text-left">
@@ -91,12 +105,16 @@ export function Sidebar() {
           className="text-xs text-muted-foreground truncate"
           aria-hidden="true"
         >
-          v{packageInfo.version} / {process.env.NEXT_PUBLIC_ENVIRONMENT}
+          v{packageInfo.version}
         </span>
       </div>
     </div>
   );
 
+  /**
+   * groupedRequests is a memoized function that groups the requests by date.
+   * @returns The grouped requests
+   */
   const groupedRequests = useMemo(() => {
     return requests.reduce<Record<string, Request[]>>((acc, request) => {
       const date = moment(request.createdAt).format('DD MMM YYYY');
@@ -108,6 +126,13 @@ export function Sidebar() {
     }, {});
   }, [requests]);
 
+  /**
+   * RequestCard component for the Prepity application.
+   *
+   * It is used to display the request card in the sidebar.
+   * @param request - The request to display
+   * @returns The RequestCard component
+   */
   const RequestCard = ({ request }: { request: Request }) => {
     const isActive = activeRequestId === request.requestSlug;
 
@@ -117,53 +142,42 @@ export function Sidebar() {
         prefetch={true}
         onClick={() => setSidebarOpen(false)}
       >
-        <div
-          className={`cursor-pointer hover:bg-card-foreground/5 border rounded-lg px-3 py-2 transition-colors
-						${
-              isActive
-                ? 'bg-card-foreground/5'
-                : 'border-transparent bg-card-foreground/5'
-            }`}
+        <Button
+          variant={isActive ? 'secondary' : 'ghost'}
+          className="w-full justify-start"
         >
-          <div className="text-sm truncate">{request.query}</div>
-          <div className="flex items-center gap-x-1.5">
-            {request.isStarred ? (
-              <StarToggle
-                isStarred={request.isStarred}
-                onToggle={async () => {
-                  return;
-                }}
-                size="small"
-              />
-            ) : (
-              <div className="size-2 rounded-full bg-card-foreground/5"></div>
-            )}
-            <div className="text-xs text-muted-foreground truncate">
-              {
-                CATEGORY_LIST.find(
-                  (category) => category.category === request.category
-                )?.categoryName
-              }
-            </div>
-          </div>
-        </div>
+          {request.isStarred && (
+            <IconToggle
+              isStarred={request.isStarred}
+              onToggle={async () => {
+                return;
+              }}
+              size="small"
+            />
+          )}
+          <div className="truncate">{request.query}</div>
+        </Button>
       </Link>
     );
   };
 
+  /**
+   * getSidebar is a function that returns the sidebar component.
+   * @returns The sidebar component
+   */
   const getSidebar = () => {
     return (
-      <div className="flex h-full w-full flex-col border-r bg-card px-6">
+      <div className="flex size-full flex-col border-r bg-sidebar px-6">
         {/* Fixed Header */}
-        <div className="flex h-12 my-2 shrink-0 items-center">
-          <Logo className="self-center" />
+        <div className="flex items-center justify-between my-3">
+          <Logo />
+          <ThemeSwitcher />
         </div>
 
-        {/* Main Navigation Area */}
-        <nav className="flex h-[calc(100vh-3rem)] flex-col">
-          <ul role="list" className="flex h-full flex-col">
-            {/* Scrollable Requests Section */}
-            <div className="flex-1 -mx-6 min-h-0">
+        {/* Scrollable Requests */}
+        <nav className="h-[calc(100vh-3rem)]">
+          <ul className="flex h-full flex-col">
+            <div className="flex-1 -mx-6">
               <div className="h-full overflow-y-auto">
                 {isLoading && requests.length === 0 ? (
                   <div className="flex items-center justify-center py-8 px-4">
@@ -179,7 +193,7 @@ export function Sidebar() {
                       key={date}
                       className="date-group grid grid-cols-1 gap-y-2"
                     >
-                      <h3 className="text-[0.7rem] font-semibold uppercase text-muted-foreground sticky top-0 bg-card py-1.5 px-6 border-y">
+                      <h3 className="text-[0.7rem] font-medium uppercase text-muted-foreground sticky top-0 bg-muted py-1.5 px-4 border-y">
                         {date}
                       </h3>
                       <div className="requests-cards grid grid-cols-1 gap-y-2 px-3 pb-3 pt-1">
@@ -212,7 +226,7 @@ export function Sidebar() {
       >
         <DialogBackdrop
           transition
-          className="fixed inset-0 bg-muted-foreground/80 transition-opacity duration-300 ease-linear data-closed:opacity-0"
+          className="fixed inset-0 bg-muted/90 transition-opacity duration-300 ease-linear data-closed:opacity-0"
         />
 
         <div className="fixed inset-0 flex">
@@ -222,15 +236,15 @@ export function Sidebar() {
           >
             {/* Mobile sidebar content */}
             <TransitionChild>
-              <div className="absolute left-full top-0 flex w-16 justify-center pt-5 duration-300 ease-in-out data-closed:opacity-0">
-                <button
-                  type="button"
+              <div className="absolute left-full top-0 flex w-16 justify-center py-3 duration-300 ease-in-out data-closed:opacity-0">
+                <Button
                   onClick={() => setSidebarOpen(false)}
-                  className="-m-2.5 p-2.5"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Close sidebar"
                 >
-                  <span className="sr-only">Close sidebar</span>
-                  <X className="size-6 text-background" aria-hidden="true" />
-                </button>
+                  <X />
+                </Button>
               </div>
             </TransitionChild>
             {getSidebar()}
@@ -244,16 +258,19 @@ export function Sidebar() {
       </div>
 
       {/* Mobile header */}
-      <div className="sticky top-0 z-40 flex items-center gap-x-4 p-4 sm:px-6 lg:hidden bg-card">
-        <button
-          type="button"
-          onClick={() => setSidebarOpen(true)}
-          className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
-        >
-          <span className="sr-only">Open sidebar</span>
-          <Menu className="size-5" aria-hidden="true" />
-        </button>
-        <Logo className="self-center" />
+      <div className="sticky top-0 z-40 flex items-center justify-between p-3 sm:px-6 lg:hidden bg-card">
+        <div className="flex items-center gap-x-4">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 lg:hidden"
+          >
+            <span className="sr-only">Open sidebar</span>
+            <Menu className="size-5" aria-hidden="true" />
+          </button>
+          <Logo className="self-center" />
+        </div>
+        <ThemeSwitcher />
       </div>
     </>
   );

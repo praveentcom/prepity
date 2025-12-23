@@ -1,6 +1,15 @@
 import { prisma } from '@/lib/server/prisma';
 import { NextApiRequest, NextApiResponse } from 'next';
 
+/**
+ * Star API handler
+ *
+ * This API handler is used to toggle the star status of a request.
+ *
+ * @param req - The request object
+ * @param res - The response object
+ * @returns The response object
+ */
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse

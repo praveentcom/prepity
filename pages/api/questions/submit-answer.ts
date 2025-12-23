@@ -1,6 +1,16 @@
 import { prisma } from '@/lib/server/prisma';
 import { NextApiRequest, NextApiResponse } from 'next';
 
+/**
+ * Submit answer API handler
+ *
+ * This API handler is used to submit an answer for a question.
+ * It will update the answer status of the question.
+ *
+ * @param req - The request object
+ * @param res - The response object
+ * @returns The response object
+ */
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
