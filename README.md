@@ -1,10 +1,10 @@
 # Prepity
 
-<img width="1222" alt="prepity_og" src="https://github.com/user-attachments/assets/77acfbfe-cf84-4b9c-aa29-ede22d4dff83" />
+Prepity is a web application that allows you to generate practice MCQs for any topic. It uses OpenAI (`GPT-5.2`) and PostgreSQL to generate and store the questions.
+
+<img width="2400" height="1260" alt="prepity_cover@2x" src="https://github.com/user-attachments/assets/5807ac9d-0668-4632-9ba4-ce27ad191eea" />
 
 ## How to run?
-
-Prepity is a web application that allows you to generate practice MCQs for any topic. It uses the OpenAI API (`GPT-5.2` model) to generate questions and the PostgreSQL database to store the questions.
 
 To run the application, you need to have the following prerequisites:
 
