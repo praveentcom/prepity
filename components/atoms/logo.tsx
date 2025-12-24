@@ -45,7 +45,8 @@ const Logo = React.forwardRef<HTMLAnchorElement, LogoProps>(
         ref={ref}
         {...props}
       >
-        <Image src="/logo.png" alt="Prepity" width={100} height={100} className='size-8' />
+        <Image src="/logo.png" alt="Prepity" width={100} height={100} className='size-8 dark:hidden' />
+        <Image src="/logo-dark.png" alt="Prepity" width={100} height={100} className='size-8 hidden dark:block' />
       </Link>
     );
   }
