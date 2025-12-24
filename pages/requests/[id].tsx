@@ -14,6 +14,13 @@ import {
   CloudAlert,
   Trash2,
   RotateCcw,
+  Timer,
+  Play,
+  Pause,
+  Square,
+  PencilIcon,
+  Sparkles,
+  RefreshCw,
 } from 'lucide-react';
 import {
   Dialog,
@@ -38,6 +45,7 @@ import {
 } from '@/components/ui/card';
 import { IconToggle } from '@/components/ui/icon-toggle';
 import { Markdown } from '@workspace/ui/components/markdown';
+import { Textarea } from '@/components/ui/textarea';
 
 /**
  * Maximum polling attempts
@@ -112,6 +120,25 @@ export default function RequestPage() {
     request: Request | null;
     questions: Question[];
   }>({ request: null, questions: [] });
+
+  const [scribbleContent, setScribbleContent] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem(`scribble-${id}`);
+      return saved || '';
+    }
+    return '';
+  });
+
+  const [timerState, setTimerState] = useState({
+    isRunning: false,
+    isPaused: false,
+    isStopped: false,
+    startTime: null as number | null,
+    pausedTime: null as number | null,
+    totalPausedDuration: 0,
+  });
+
+  const [elapsedTime, setElapsedTime] = useState(0);
 
   const [ui, setUi] = useState({
     isLoading: true,
@@ -236,6 +263,239 @@ export default function RequestPage() {
   }, [request?.id, request?.status, pollingExhausted]);
 
   /**
+   * useEffect to save the scribble content to sessionStorage
+   * @returns The useEffect to save the scribble content to sessionStorage
+   */
+  useEffect(() => {
+    if (id && typeof id === 'string') {
+      sessionStorage.setItem(`scribble-${id}`, scribbleContent);
+    }
+  }, [scribbleContent, id]);
+
+  /**
+   * Format time in milliseconds to HH:MM:SS
+   */
+  const formatTime = (ms: number): string => {
+    const seconds = Math.floor(ms / 1000);
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    if (hours > 0) {
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  /**
+   * Format timestamp to readable date
+   */
+  const formatStartTime = (timestamp: number | null): string => {
+    if (!timestamp) return 'Not started';
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  };
+
+  /**
+   * Start the timer
+   */
+  const handleStartTimer = () => {
+    if (!id || typeof id !== 'string') return;
+    const timerKey = `timer-${id}`;
+    const now = Date.now();
+    const newTimerState = {
+      isRunning: true,
+      isPaused: false,
+      isStopped: false,
+      startTime: now,
+      pausedTime: null,
+      totalPausedDuration: 0,
+    };
+    setTimerState(newTimerState);
+    localStorage.setItem(timerKey, JSON.stringify(newTimerState));
+  };
+
+  /**
+   * Pause the timer
+   */
+  const handlePauseTimer = () => {
+    if (!id || typeof id !== 'string' || !timerState.startTime) return;
+    const timerKey = `timer-${id}`;
+    const now = Date.now();
+    const newTimerState = {
+      ...timerState,
+      isRunning: false,
+      isPaused: true,
+      pausedTime: now,
+    };
+    setTimerState(newTimerState);
+    localStorage.setItem(timerKey, JSON.stringify(newTimerState));
+  };
+
+  /**
+   * Resume the timer
+   */
+  const handleResumeTimer = () => {
+    if (!id || typeof id !== 'string' || !timerState.startTime) return;
+    const timerKey = `timer-${id}`;
+    const now = Date.now();
+    let newTimerState;
+
+    if (timerState.isStopped) {
+      newTimerState = {
+        ...timerState,
+        isRunning: true,
+        isPaused: false,
+        isStopped: false,
+        startTime: now - elapsedTime,
+        pausedTime: null,
+        totalPausedDuration: 0,
+      };
+    } else if (timerState.isPaused) {
+      const pauseDuration = now - (timerState.pausedTime || 0);
+      newTimerState = {
+        ...timerState,
+        isRunning: true,
+        isPaused: false,
+        pausedTime: null,
+        totalPausedDuration: timerState.totalPausedDuration + pauseDuration,
+      };
+    } else {
+      return;
+    }
+
+    setTimerState(newTimerState);
+    localStorage.setItem(timerKey, JSON.stringify(newTimerState));
+  };
+
+  /**
+   * Stop the timer
+   */
+  const handleStopTimer = () => {
+    if (!id || typeof id !== 'string' || !timerState.startTime) return;
+    const timerKey = `timer-${id}`;
+    const now = Date.now();
+    const finalElapsedTime = now - timerState.startTime - timerState.totalPausedDuration;
+    const newTimerState = {
+      ...timerState,
+      isRunning: false,
+      isPaused: false,
+      isStopped: true,
+      stoppedAt: now,
+    };
+    setTimerState(newTimerState);
+    setElapsedTime(finalElapsedTime);
+    localStorage.setItem(timerKey, JSON.stringify(newTimerState));
+  };
+
+  /**
+   * Reset the timer
+   */
+  const handleResetTimer = () => {
+    if (!id || typeof id !== 'string') return;
+    const timerKey = `timer-${id}`;
+    const newTimerState = {
+      isRunning: false,
+      isPaused: false,
+      isStopped: false,
+      startTime: null as number | null,
+      pausedTime: null as number | null,
+      totalPausedDuration: 0,
+    };
+    setTimerState(newTimerState);
+    setElapsedTime(0);
+    localStorage.setItem(timerKey, JSON.stringify(newTimerState));
+  };
+
+  /**
+    * useEffect to load the timer state from localStorage on mount
+    * @returns The useEffect to load the timer state from localStorage on mount
+    */
+  useEffect(() => {
+    if (id && typeof id === 'string') {
+      const timerKey = `timer-${id}`;
+      const savedTimer = localStorage.getItem(timerKey);
+      
+      /**
+       * initialState for the timer
+       */
+      const initialState = {
+        isRunning: false,
+        isPaused: false,
+        isStopped: false,
+        startTime: null as number | null,
+        pausedTime: null as number | null,
+        totalPausedDuration: 0,
+      };
+
+      if (savedTimer) {
+        try {
+          const parsed = JSON.parse(savedTimer);
+          setTimerState(parsed);
+          
+          if (parsed.startTime) {
+            let calculatedElapsed = 0;
+            
+            if (parsed.isStopped) {
+              calculatedElapsed = parsed.stoppedAt - parsed.startTime - parsed.totalPausedDuration;
+            } else if (parsed.isPaused && parsed.pausedTime) {
+              calculatedElapsed = parsed.pausedTime - parsed.startTime - parsed.totalPausedDuration;
+            } else if (parsed.isRunning) {
+              const now = Date.now();
+              calculatedElapsed = now - parsed.startTime - parsed.totalPausedDuration;
+            }
+            
+            setElapsedTime(calculatedElapsed);
+          }
+        } catch (error) {
+          console.error('Error parsing timer state:', error);
+          setTimerState(initialState);
+          setElapsedTime(0);
+        }
+      } else {
+        setTimerState(initialState);
+        setElapsedTime(0);
+      }
+    }
+  }, [id]);
+
+  /**
+   * useEffect to update the elapsed time
+   * @returns The useEffect to update the elapsed time
+   */
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+
+    if (timerState.isRunning && !timerState.isPaused && !timerState.isStopped && timerState.startTime) {
+      interval = setInterval(() => {
+        const now = Date.now();
+        setElapsedTime(now - (timerState.startTime || 0) - timerState.totalPausedDuration);
+      }, 1000);
+    } else if (timerState.isPaused && timerState.pausedTime) {
+      setElapsedTime(timerState.pausedTime - (timerState.startTime || 0) - timerState.totalPausedDuration);
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [timerState.isRunning, timerState.isPaused, timerState.isStopped, timerState.startTime, timerState.pausedTime, timerState.totalPausedDuration]);
+
+  /**
+   * useEffect to check if all questions are answered to auto-stop timer
+   * @returns The useEffect to check if all questions are answered to auto-stop timer
+   */
+  useEffect(() => {
+    if (questions.length > 0 && timerState.isRunning && !timerState.isStopped) {
+      const allAnswered = questions.every(q => q.isAnswered);
+      if (allAnswered) {
+        handleStopTimer();
+      }
+    }
+  }, [questions]);
+
+    /**
    * toggleStarStatus function for the RequestPage component
    * @returns The toggleStarStatus function
    */
@@ -725,10 +985,13 @@ export default function RequestPage() {
             )}
           </div>
         </div>
-        <div className="col-span-3 sm:col-span-1 sm:sticky sm:top-6 sm:self-start">
+        <div className="col-span-3 sm:col-span-1 sm:sticky sm:top-6 sm:self-start flex flex-col gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Your Practice Summary</CardTitle>
+              <CardTitle className='flex items-center gap-2'>
+                <Sparkles />
+                Practice Summary
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {request.status === RequestStatus.PARTIALLY_CREATED && (
@@ -763,6 +1026,86 @@ export default function RequestPage() {
                   No questions generated yet.
                 </p>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Timer />
+                Timer
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-1">
+                    <p className={`text-3xl font-mono font-medium ${timerState.isRunning ? '' : timerState.isPaused ? 'text-yellow-500' : 'text-muted-foreground'}`}>
+                      {formatTime(elapsedTime)}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    {!timerState.isRunning && !timerState.isPaused && !timerState.isStopped && (
+                      <Button onClick={handleStartTimer} size="sm">
+                        <Play className="size-4 mr-2" />
+                        Start
+                      </Button>
+                    )}
+                    {timerState.isRunning && (
+                      <Button onClick={handlePauseTimer} size="sm" variant="outline">
+                        <Pause className="size-4 mr-2" />
+                        Pause
+                      </Button>
+                    )}
+                    {timerState.isPaused && !timerState.isStopped && (
+                      <Button onClick={handleResumeTimer} size="sm" variant="outline">
+                        <Play className="size-4 mr-2" />
+                        Resume
+                      </Button>
+                    )}
+                    {timerState.isStopped && questions.length > 0 && !questions.every(q => q.isAnswered) && (
+                      <>
+                        <Button onClick={handleResumeTimer} size="sm" variant="outline">
+                          <Play className="size-4 mr-2" />
+                          Resume
+                        </Button>
+                        <Button onClick={handleResetTimer} size="sm" variant="outline">
+                          <RefreshCw className="size-4 mr-2" />
+                          Reset
+                        </Button>
+                      </>
+                    )}
+                    {(timerState.isRunning || timerState.isPaused) && (
+                      <Button onClick={handleStopTimer} size="sm" variant="destructive">
+                        <Square className="size-4 mr-2" />
+                        Stop
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className='flex items-center gap-2'>
+                <PencilIcon />
+                Rough Work Area
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-2">
+                <Textarea
+                  placeholder="Write your notes, calculations, or rough work here..."
+                  value={scribbleContent}
+                  onChange={(e) => setScribbleContent(e.target.value)}
+                  className="min-h-[300px] resize-y"
+                />
+                <p className="text-xs text-muted-foreground">
+                  This is a rough work area. Content will be cleared when the tab is closed.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>

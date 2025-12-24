@@ -7,7 +7,7 @@ import {
   DialogPanel,
   TransitionChild,
 } from '@headlessui/react';
-import { Menu, X, Loader2, Search } from 'lucide-react';
+import { Menu, X, Loader2, Search, Plus } from 'lucide-react';
 import { Logo } from '@/components/atoms/logo';
 import { ThemeSwitcher } from '@/components/atoms/theme-switcher';
 import packageInfo from '@/package.json';
@@ -223,19 +223,27 @@ export function Sidebar() {
         </div>
 
         {/* Search Input */}
-        <div className="shrink-0 -mt-1 px-4 pb-4 border-b">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-            <Input
+        <div className="-mt-1 p-4 border-y flex items-center justify-between gap-4">
+        <Input
               type="text"
               placeholder="Search requests..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
             />
-          </div>
+            
+            <Link
+              href="/"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <Button
+                size="icon"
+                title="New Request"
+              >
+                <Plus />
+              </Button>
+            </Link>
         </div>
-
+        
         {/* Virtualized Scrollable Requests */}
         <nav ref={parentRef} className="flex-1 overflow-y-auto min-h-0">
           {isLoading && requests.length === 0 ? (
