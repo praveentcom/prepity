@@ -1,17 +1,16 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Dialog,
   DialogBackdrop,
   DialogPanel,
   TransitionChild,
 } from '@headlessui/react';
-import { Menu, X, Loader2 } from 'lucide-react';
+import { Menu, X, Loader2, Search } from 'lucide-react';
 import { Logo } from '@/components/atoms/logo';
 import { ThemeSwitcher } from '@/components/atoms/theme-switcher';
 import packageInfo from '@/package.json';
-import { fetchRequests } from '@/lib/client/requests';
 import { Request } from '@prisma/client';
 import moment from 'moment';
 import { useRouter } from 'next/router';
@@ -19,69 +18,39 @@ import Link from 'next/link';
 import { IconToggle } from '../ui/icon-toggle';
 import { useRequests } from '@/lib/client/contexts/requests-context';
 import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { useVirtualizer } from '@tanstack/react-virtual';
 
 /**
  * Sidebar component for the Prepity application.
  *
  * It is used to display the sidebar menu and the requests cards in desktop and mobile views.
- * It also fetches the requests from the database and stores them in the local storage.
  */
 export function Sidebar() {
   const router = useRouter();
-  const { requests, setRequests, isLoading, setIsLoading } = useRequests();
+  const { requests, isLoading, refreshRequests } = useRequests();
 
   const { id: activeRequestId } = router.query;
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const parentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (requests.length > 0) {
       localStorage.setItem('requests', JSON.stringify(requests));
-      return;
     }
-
-    const storedRequests = localStorage.getItem('requests');
-    if (storedRequests) {
-      try {
-        const parsed = JSON.parse(storedRequests);
-        setRequests(parsed);
-      } catch (error) {
-        console.error('Error parsing stored requests:', error);
-      }
-    }
-
-    const loadRequests = async () => {
-      setIsLoading(true);
-      try {
-        const data = await fetchRequests(100);
-        setRequests(data);
-        localStorage.setItem('requests', JSON.stringify(data));
-      } catch (error) {
-        console.error('Error loading requests:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadRequests();
-  }, []);
+  }, [requests]);
 
   useEffect(() => {
     const handleRequestsUpdated = () => {
-      const updatedRequests = localStorage.getItem('requests');
-      if (updatedRequests) {
-        try {
-          const parsed = JSON.parse(updatedRequests);
-          setRequests(parsed);
-        } catch (error) {
-          console.error('Error parsing updated requests:', error);
-        }
-      }
+      refreshRequests();
     };
     window.addEventListener('requests-updated', handleRequestsUpdated);
 
     return () => {
       window.removeEventListener('requests-updated', handleRequestsUpdated);
     };
-  }, [setRequests]);
+  }, [refreshRequests]);
 
   useEffect(() => {
     if (requests.length > 0) {
@@ -112,19 +81,63 @@ export function Sidebar() {
   );
 
   /**
-   * groupedRequests is a memoized function that groups the requests by date.
+   * filteredRequests filters based on search query
+   */
+  const filteredRequests = useMemo(() => {
+    if (!searchQuery.trim()) return requests;
+    const query = searchQuery.toLowerCase();
+    return requests.filter(
+      (request) =>
+        request.title?.toLowerCase().includes(query) ||
+        request.query?.toLowerCase().includes(query)
+    );
+  }, [requests, searchQuery]);
+
+  /**
+   * groupedRequests is a memoized function that groups the filtered requests by date.
    * @returns The grouped requests
    */
   const groupedRequests = useMemo(() => {
-    return requests.reduce<Record<string, Request[]>>((acc, request) => {
-      const date = moment(request.createdAt).format('DD MMM YYYY');
-      if (!acc[date]) {
-        acc[date] = [];
-      }
-      acc[date].push(request);
-      return acc;
-    }, {});
-  }, [requests]);
+    return filteredRequests.reduce<Record<string, Request[]>>(
+      (acc, request) => {
+        const date = moment(request.createdAt).format('DD MMM YYYY');
+        if (!acc[date]) {
+          acc[date] = [];
+        }
+        acc[date].push(request);
+        return acc;
+      },
+      {}
+    );
+  }, [filteredRequests]);
+
+  /**
+   * Flattened list for virtualization - includes both date headers and request items
+   */
+  type VirtualItem =
+    | { type: 'header'; date: string }
+    | { type: 'request'; request: Request };
+
+  const flattenedItems = useMemo<VirtualItem[]>(() => {
+    const items: VirtualItem[] = [];
+    Object.entries(groupedRequests).forEach(([date, _requests]) => {
+      items.push({ type: 'header', date });
+      _requests.forEach((request) => {
+        items.push({ type: 'request', request });
+      });
+    });
+    return items;
+  }, [groupedRequests]);
+
+  const virtualizer = useVirtualizer({
+    count: flattenedItems.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: (index) => {
+      const item = flattenedItems[index];
+      return item.type === 'header' ? 32 : 40;
+    },
+    overscan: 10,
+  });
 
   /**
    * RequestCard component for the Prepity application.
@@ -141,6 +154,7 @@ export function Sidebar() {
         href={`/requests/${request.requestSlug}`}
         prefetch={true}
         onClick={() => setSidebarOpen(false)}
+        className="min-w-0"
       >
         <Button
           variant={isActive ? 'secondary' : 'ghost'}
@@ -155,7 +169,7 @@ export function Sidebar() {
               size="small"
             />
           )}
-          <div className="truncate">{request.query}</div>
+          <div className="truncate">{request.title || request.query}</div>
         </Button>
       </Link>
     );
@@ -167,52 +181,81 @@ export function Sidebar() {
    */
   const getSidebar = () => {
     return (
-      <div className="flex size-full flex-col border-r bg-sidebar px-6">
+      <div className="flex h-full flex-col border-r bg-sidebar">
         {/* Fixed Header */}
-        <div className="flex items-center justify-between my-4 -mr-3">
+        <div className="flex shrink-0 items-center justify-between px-4 py-4 -mr-1">
           <Logo />
           <ThemeSwitcher />
         </div>
 
-        {/* Scrollable Requests */}
-        <nav className="h-[calc(100vh-3rem)]">
-          <ul className="flex h-full flex-col">
-            <div className="flex-1 -mx-6">
-              <div className="h-full overflow-y-auto">
-                {isLoading && requests.length === 0 ? (
-                  <div className="flex items-center justify-center py-8 px-4">
-                    <Loader2 className="size-5 animate-spin text-muted-foreground" />
-                  </div>
-                ) : Object.entries(groupedRequests).length === 0 ? (
-                  <div className="text-xs text-muted-foreground px-4 py-2">
-                    Generated question sets will be listed here once ready
-                  </div>
-                ) : (
-                  Object.entries(groupedRequests).map(([date, _requests]) => (
-                    <div
-                      key={date}
-                      className="date-group grid grid-cols-1 gap-y-2"
-                    >
-                      <h3 className="text-[0.7rem] font-medium uppercase text-muted-foreground sticky top-0 bg-muted py-1.5 px-4 border-y">
-                        {date}
-                      </h3>
-                      <div className="requests-cards grid grid-cols-1 gap-y-2 px-3 pb-3 pt-1">
-                        {_requests.map((request) => (
-                          <RequestCard key={request.id} request={request} />
-                        ))}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
+        {/* Search Input */}
+        <div className="shrink-0 -mt-1 px-4 pb-4 border-b">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+            <Input
+              type="text"
+              placeholder="Search requests..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
 
-            {/* Fixed Footer */}
-            <li className="-mx-6 mt-auto">
-              <VersionInfo />
-            </li>
-          </ul>
+        {/* Virtualized Scrollable Requests */}
+        <nav ref={parentRef} className="flex-1 overflow-y-auto min-h-0">
+          {isLoading && requests.length === 0 ? (
+            <div className="flex items-center justify-center py-8 px-4">
+              <Loader2 className="size-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : flattenedItems.length === 0 ? (
+            <div className="text-xs text-muted-foreground px-4 py-2">
+              {searchQuery
+                ? 'No requests match your search'
+                : 'Generated question sets will be listed here once ready'}
+            </div>
+          ) : (
+            <div
+              style={{
+                height: `${virtualizer.getTotalSize()}px`,
+                width: '100%',
+                position: 'relative',
+              }}
+            >
+              {virtualizer.getVirtualItems().map((virtualItem) => {
+                const item = flattenedItems[virtualItem.index];
+                return (
+                  <div
+                    key={virtualItem.key}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: `${virtualItem.size}px`,
+                      transform: `translateY(${virtualItem.start}px)`,
+                    }}
+                  >
+                    {item.type === 'header' ? (
+                      <h3 className="text-[0.7rem] font-medium uppercase text-muted-foreground bg-muted py-1.5 px-4 h-full flex items-center">
+                        {item.date}
+                      </h3>
+                    ) : (
+                      <div className="p-2">
+                        <RequestCard request={item.request} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </nav>
+
+        {/* Sticky Footer */}
+        <div className="shrink-0 mt-auto">
+          <VersionInfo />
+        </div>
       </div>
     );
   };

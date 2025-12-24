@@ -11,7 +11,7 @@ export function ClientLayout({ children }: ClientLayoutProps) {
     <>
       <Sidebar />
       <div className="lg:pl-72">
-        <div className="p-6">{children}</div>
+        <div className="px-6 py-4">{children}</div>
       </div>
     </>
   );

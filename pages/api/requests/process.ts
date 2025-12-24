@@ -28,18 +28,23 @@ export default async function handler(
       return res.status(400).json({ message: 'Request ID is required' });
     }
 
-    const request = await prisma.request.findUnique({
-      where: { id: parseInt(requestId) },
-    });
+    const request = await prisma.request
+      .update({
+        where: {
+          id: parseInt(requestId),
+          status: {
+            not: RequestStatus.PROCESSING,
+          },
+        },
+        data: { status: RequestStatus.PROCESSING },
+      })
+      .catch(() => null);
 
     if (!request) {
-      return res.status(404).json({ message: 'Request not found' });
+      return res
+        .status(409)
+        .json({ message: 'Request not found or already processing' });
     }
-
-    await prisma.request.update({
-      where: { id: request.id },
-      data: { status: RequestStatus.PROCESSING },
-    });
 
     const currentQuestionsCount = await prisma.question.count({
       where: { requestId: request.id },

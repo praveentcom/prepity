@@ -8,6 +8,7 @@
 @source "../components/**/*.{ts,tsx,css}";
 @source "../lib/**/*.{ts,tsx,css}";
 @source "../hooks/**/*.{ts,tsx,css}";
+@source "./**/*.{ts,tsx}";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -194,4 +195,230 @@
   background-color: rgba(153, 27, 27, 0.25);
   border-color: rgba(248, 113, 113, 0.4);
   color: #fca5a5;
+}
+
+@layer utilities {
+  /* Code Styles */
+  .hljs {
+    @apply text-sm bg-transparent font-mono;
+  }
+  .line-number {
+    @apply text-sm text-muted-foreground/80 font-mono select-none pr-2 text-right border-r border-border bg-background shrink-0;
+  }
+  .line-content {
+    @apply text-sm px-3 flex-1 min-w-0;
+  }
+  .line-content span,
+  .line-content pre {
+    @apply text-sm;
+  }
+}
+
+/**
+ * Highlight.js Theme System for @workspace/ui
+ */
+
+/* GitHub Theme (Light/Dark) */
+.hljs-theme-github .hljs,
+.hljs-theme-github .hljs {
+  --hljs-bg: #ffffff;
+  --hljs-color: #24292e;
+  --hljs-comment: #6a737d;
+  --hljs-keyword: #d73a49;
+  --hljs-string: #032f62;
+  --hljs-number: #005cc5;
+  --hljs-function: #6f42c1;
+  --hljs-variable: #e36209;
+  --hljs-built-in: #005cc5;
+  --hljs-literal: #005cc5;
+}
+
+.dark .hljs-theme-github .hljs,
+.dark .hljs-theme-github .hljs {
+  --hljs-bg: #0d1117;
+  --hljs-color: #c9d1d9;
+  --hljs-comment: #8b949e;
+  --hljs-keyword: #ff7b72;
+  --hljs-string: #a5d6ff;
+  --hljs-number: #79c0ff;
+  --hljs-function: #d2a8ff;
+  --hljs-variable: #ffa657;
+  --hljs-built-in: #79c0ff;
+  --hljs-literal: #79c0ff;
+}
+
+/* Atom One Theme (Light/Dark) */
+.hljs-theme-atom-one .hljs,
+.hljs-theme-atom-one .hljs {
+  --hljs-bg: #fafafa;
+  --hljs-color: #383a42;
+  --hljs-comment: #a0a1a7;
+  --hljs-keyword: #a626a4;
+  --hljs-string: #50a14f;
+  --hljs-number: #986801;
+  --hljs-function: #4078f2;
+  --hljs-variable: #e45649;
+  --hljs-built-in: #c18401;
+  --hljs-literal: #0184bb;
+}
+
+.dark .hljs-theme-atom-one .hljs,
+.dark .hljs-theme-atom-one .hljs {
+  --hljs-bg: #282c34;
+  --hljs-color: #abb2bf;
+  --hljs-comment: #5c6370;
+  --hljs-keyword: #c678dd;
+  --hljs-string: #98c379;
+  --hljs-number: #d19a66;
+  --hljs-function: #61afef;
+  --hljs-variable: #e06c75;
+  --hljs-built-in: #e6c07b;
+  --hljs-literal: #56b6c2;
+}
+
+/* VS Theme (Light/Dark) */
+.hljs-theme-vs .hljs,
+.hljs-theme-vs .hljs {
+  --hljs-bg: rgba(255, 255, 255, 0.4);
+  --hljs-color: #0b0b0b;
+  --hljs-comment: #008000;
+  --hljs-keyword: #0000ff;
+  --hljs-string: #a31515;
+  --hljs-number: #098658;
+  --hljs-function: #795e26;
+  --hljs-variable: #001080;
+  --hljs-built-in: #0000ff;
+  --hljs-literal: #0000ff;
+}
+
+.dark .hljs-theme-vs .hljs,
+.dark .hljs-theme-vs .hljs {
+  --hljs-bg: rgba(11, 11, 11, 0.4);
+  --hljs-color: #d4d4d4;
+  --hljs-comment: #6a9955;
+  --hljs-keyword: #569cd6;
+  --hljs-string: #ce9178;
+  --hljs-number: #b5cea8;
+  --hljs-function: #dcdcaa;
+  --hljs-variable: #9cdcfe;
+  --hljs-built-in: #4ec9b0;
+  --hljs-literal: #569cd6;
+}
+
+/* Monokai Theme */
+.hljs-theme-monokai .hljs,
+.hljs-theme-monokai .hljs {
+  --hljs-bg: #272822;
+  --hljs-color: #f8f8f2;
+  --hljs-comment: #75715e;
+  --hljs-keyword: #f92672;
+  --hljs-string: #e6db74;
+  --hljs-number: #ae81ff;
+  --hljs-function: #a6e22e;
+  --hljs-variable: #fd971f;
+  --hljs-built-in: #66d9ef;
+  --hljs-literal: #ae81ff;
+}
+
+/* Dracula Theme */
+.hljs-theme-dracula .hljs,
+.hljs-theme-dracula .hljs {
+  --hljs-bg: #282a36;
+  --hljs-color: #f8f8f2;
+  --hljs-comment: #6272a4;
+  --hljs-keyword: #ff79c6;
+  --hljs-string: #f1fa8c;
+  --hljs-number: #bd93f9;
+  --hljs-function: #50fa7b;
+  --hljs-variable: #ffb86c;
+  --hljs-built-in: #8be9fd;
+  --hljs-literal: #bd93f9;
+}
+
+/* Nord Theme */
+.hljs-theme-nord .hljs,
+.hljs-theme-nord .hljs {
+  --hljs-bg: #2e3440;
+  --hljs-color: #d8dee9;
+  --hljs-comment: #616e88;
+  --hljs-keyword: #81a1c1;
+  --hljs-string: #a3be8c;
+  --hljs-number: #b48ead;
+  --hljs-function: #88c0d0;
+  --hljs-variable: #d08770;
+  --hljs-built-in: #5e81ac;
+  --hljs-literal: #81a1c1;
+}
+
+/* Tokyo Night Theme */
+.hljs-theme-tokyo-night .hljs,
+.hljs-theme-tokyo-night .hljs {
+  --hljs-bg: #0b0b0b;
+  --hljs-color: #c0caf5;
+  --hljs-comment: #565f89;
+  --hljs-keyword: #bb9af7;
+  --hljs-string: #9ece6a;
+  --hljs-number: #ff9e64;
+  --hljs-function: #7aa2f7;
+  --hljs-variable: #f7768e;
+  --hljs-built-in: #e0af68;
+  --hljs-literal: #bb9af7;
+}
+
+/* Default Theme (fallback) */
+.hljs-theme-default .hljs,
+.hljs-theme-default .hljs {
+  --hljs-bg: transparent;
+  --hljs-color: inherit;
+}
+
+/* Apply theme colors to hljs classes */
+.hljs {
+  background: var(--hljs-bg) !important;
+  color: var(--hljs-color) !important;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: var(--hljs-comment) !important;
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal {
+  color: var(--hljs-keyword) !important;
+  font-weight: bold;
+}
+
+.hljs-string,
+.hljs-doctag {
+  color: var(--hljs-string) !important;
+}
+
+.hljs-number,
+.hljs-regexp,
+.hljs-link {
+  color: var(--hljs-number) !important;
+}
+
+.hljs-function,
+.hljs-title {
+  color: var(--hljs-function) !important;
+}
+
+.hljs-variable,
+.hljs-template-variable {
+  color: var(--hljs-variable) !important;
+}
+
+.hljs-built_in,
+.hljs-type {
+  color: var(--hljs-built-in) !important;
+}
+
+.hljs-meta,
+.hljs-name,
+.hljs-attribute {
+  color: var(--hljs-literal) !important;
 }

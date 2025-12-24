@@ -7,6 +7,7 @@ import {
   useState,
   useEffect,
   ReactNode,
+  useCallback,
 } from 'react';
 
 /**
@@ -14,13 +15,13 @@ import {
  * @property requests - The requests
  * @property setRequests - The function to set the requests
  * @property isLoading - The loading state
- * @property setIsLoading - The function to set the loading state
+ * @property refreshRequests - The function to refresh the requests
  */
 interface RequestsContextType {
   requests: Request[];
   setRequests: (requests: Request[]) => void;
   isLoading: boolean;
-  setIsLoading: (loading: boolean) => void;
+  refreshRequests: () => Promise<void>;
 }
 
 const RequestsContext = createContext<RequestsContextType | undefined>(
@@ -31,28 +32,33 @@ const RequestsContext = createContext<RequestsContextType | undefined>(
  * RequestsProvider is a context provider for the requests state.
  * It is used to provide the requests state to the application.
  * @param children - The children components
- * @param initialRequests - The initial requests
  * @returns The RequestsProvider component
  */
-export function RequestsProvider({
-  children,
-  initialRequests = [],
-}: {
-  children: ReactNode;
-  initialRequests?: Request[];
-}) {
-  const [requests, setRequests] = useState<Request[]>(initialRequests);
-  const [isLoading, setIsLoading] = useState(false);
+export function RequestsProvider({ children }: { children: ReactNode }) {
+  const [requests, setRequests] = useState<Request[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const refreshRequests = useCallback(async () => {
+    try {
+      const res = await fetch('/api/requests/list?limit=100');
+      if (res.ok) {
+        const data = await res.json();
+        setRequests(data.requests || []);
+      }
+    } catch (error) {
+      console.error('Error fetching requests:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    if (initialRequests.length > 0) {
-      setRequests(initialRequests);
-    }
-  }, [initialRequests]);
+    refreshRequests();
+  }, [refreshRequests]);
 
   return (
     <RequestsContext.Provider
-      value={{ requests, setRequests, isLoading, setIsLoading }}
+      value={{ requests, setRequests, isLoading, refreshRequests }}
     >
       {children}
     </RequestsContext.Provider>

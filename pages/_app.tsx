@@ -1,7 +1,7 @@
 import '@/styles/globals.css';
 import type { AppProps } from 'next/app';
 import { Google_Sans_Flex, Google_Sans_Code } from 'next/font/google';
-import { Toaster } from '@/components/ui/toaster';
+import { Toaster } from '@workspace/ui/components/sonner';
 import Head from 'next/head';
 import { ClientLayout } from '@/components/layout/client-layout';
 import { RequestsProvider } from '@/lib/client/contexts/requests-context';
@@ -29,8 +29,6 @@ const fontMono = Google_Sans_Code({
  * @returns The main component for the Prepity application
  */
 function PrepityApp({ Component, pageProps }: AppProps) {
-  const { initialRequests = [] } = pageProps;
-
   return (
     <NextThemesProvider
       attribute="class"
@@ -45,7 +43,7 @@ function PrepityApp({ Component, pageProps }: AppProps) {
       <main
         className={`${fontSans.variable} ${fontMono.variable} ${fontSans.className}`}
       >
-        <RequestsProvider initialRequests={initialRequests}>
+        <RequestsProvider>
           <ClientLayout>
             <Component {...pageProps} />
           </ClientLayout>

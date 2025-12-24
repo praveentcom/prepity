@@ -39,6 +39,7 @@ enum AnswerType {
 
 model Request {
   id                 Int           @id @default(autoincrement())
+  title              String?
   category           String
   query              String       @db.Text
   status             RequestStatus @default(PENDING)

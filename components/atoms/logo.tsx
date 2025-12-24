@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { BookOpenCheckIcon } from 'lucide-react';
-import { cn } from '@/lib/client/utils';
+import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -34,10 +34,7 @@ export interface LogoProps
 }
 
 const Logo = React.forwardRef<HTMLAnchorElement, LogoProps>(
-  (
-    { className, variant, size, href = '/', ...props },
-    ref
-  ) => {
+  ({ className, variant, size, href = '/', ...props }, ref) => {
     return (
       <Link
         href={href}
@@ -45,8 +42,20 @@ const Logo = React.forwardRef<HTMLAnchorElement, LogoProps>(
         ref={ref}
         {...props}
       >
-        <Image src="/logo.png" alt="Prepity" width={100} height={100} className='size-8 dark:hidden' />
-        <Image src="/logo-dark.png" alt="Prepity" width={100} height={100} className='size-8 hidden dark:block' />
+        <Image
+          src="/logo.png"
+          alt="Prepity"
+          width={100}
+          height={100}
+          className="size-8 dark:hidden"
+        />
+        <Image
+          src="/logo-dark.png"
+          alt="Prepity"
+          width={100}
+          height={100}
+          className="size-8 hidden dark:block"
+        />
       </Link>
     );
   }

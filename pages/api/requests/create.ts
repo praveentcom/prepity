@@ -2,6 +2,8 @@ import { prisma } from '@/lib/server/prisma';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { Difficulty, RequestStatus } from '@prisma/client';
 import { z } from 'zod';
+import { generateText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 
 /**
  * Create request schema
@@ -55,8 +57,23 @@ export default async function handler(
       requestSlug,
     } = result.data;
 
+    let title: string | null = null;
+    try {
+      const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const { text } = await generateText({
+        model: openai('gpt-4o-mini'),
+        prompt: `Generate a short, concise title (under 60 characters) for practice questions on "${query}" in the category "${category}". 
+The title should be descriptive and capture the essence of the topic.
+Return ONLY the title text, nothing else. No quotes, no hyphens, no colons or other special characters.`,
+      });
+      title = text.trim();
+    } catch (error) {
+      console.error('Error generating title:', error);
+    }
+
     const request = await prisma.request.create({
       data: {
+        title,
         category,
         query,
         difficulty,

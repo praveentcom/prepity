@@ -14,7 +14,10 @@
     "jsx": "react-jsx",
     "incremental": true,
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@workspace/ui/components/*": ["./components/ui/*"],
+      "@workspace/ui/lib/*": ["./lib/*"],
+      "@workspace/ui/hooks/*": ["./hooks/*"]
     },
     "plugins": [
       {

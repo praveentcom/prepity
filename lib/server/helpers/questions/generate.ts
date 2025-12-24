@@ -156,11 +156,13 @@ SECOND HINT (hint2):
 `,
     });
 
+    const targetCount = initQuestionsCount - currentQuestionsCount;
+
     for await (const element of elementStream) {
-      console.log({
-        ...element,
-        requestId: request.id,
-      });
+      if (questions.length >= targetCount) {
+        break;
+      }
+
       const question = await prisma.question.create({
         data: {
           ...element,
@@ -182,16 +184,15 @@ SECOND HINT (hint2):
 
     return questions;
   } catch (error) {
-    console.error('Error generating questions:', error);
-
     if (NoObjectGeneratedError.isInstance(error)) {
-      console.log('NoObjectGeneratedError');
-      console.log('Cause:', error.cause);
-      console.log('Text:', error.text);
-      console.log('Response:', error.response);
-      console.log('Usage:', error.usage);
+      console.error('NoObjectGeneratedError', {
+        cause: error.cause,
+        text: error.text,
+        response: error.response,
+        usage: error.usage,
+      });
     } else {
-      console.log('An unexpected error occurred:', error);
+      console.error('An unexpected error occurred:', error);
     }
 
     return [];

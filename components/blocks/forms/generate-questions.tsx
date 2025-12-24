@@ -19,12 +19,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { FormProvider, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import router from 'next/router';
 import { CATEGORY_LIST } from '@/lib/client/constants';
+import { useRequests } from '@/lib/client/contexts/requests-context';
 
 const generateQuestionsSchema = z.object({
   category: z
@@ -49,13 +50,17 @@ const generateQuestionsSchema = z.object({
     .max(50),
 });
 
+const CATEGORY_GROUPS = [...new Set(CATEGORY_LIST.map((c) => c.group))];
+
 export default function GenerateQuestionsForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<string>('Interviews');
+  const { refreshRequests } = useRequests();
 
   const form = useForm<z.infer<typeof generateQuestionsSchema>>({
     resolver: zodResolver(generateQuestionsSchema),
     defaultValues: {
-      category: '',
+      category: 'software-engineering',
       focusArea: '',
       difficulty: 'MEDIUM',
       initQuestionsCount: 10,
@@ -64,6 +69,10 @@ export default function GenerateQuestionsForm() {
 
   const selectedCategory = form.watch('category');
 
+  const filteredCategories = selectedGroup
+    ? CATEGORY_LIST.filter((c) => c.group === selectedGroup)
+    : [];
+
   async function onSubmit(data: z.infer<typeof generateQuestionsSchema>) {
     try {
       setIsLoading(true);
@@ -71,6 +80,7 @@ export default function GenerateQuestionsForm() {
         ...data,
         requestSlug: uuidv4(),
       });
+      await refreshRequests();
       router.push(`/requests/${response.data.requestSlug}`);
     } catch (error) {
       console.error('Error creating request:', error);
@@ -79,38 +89,73 @@ export default function GenerateQuestionsForm() {
   }
 
   return (
-    <Form {...form}>
+    <FormProvider {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="category"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Category</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your category" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {CATEGORY_LIST.map((category) => (
-                    <SelectItem
-                      key={category.category}
-                      value={category.category}
-                    >
-                      {category.categoryName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormDescription>
-                Choose the category of questions you want to generate.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <FormItem>
+            <FormLabel>Type</FormLabel>
+            <Select
+              value={selectedGroup}
+              onValueChange={(value) => {
+                setSelectedGroup(value);
+                form.setValue('category', '');
+              }}
+            >
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {CATEGORY_GROUPS.map((group) => (
+                  <SelectItem key={group} value={group}>
+                    {group}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FormDescription>What are you preparing for?</FormDescription>
+          </FormItem>
+
+          <FormField
+            control={form.control}
+            name="category"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  disabled={!selectedGroup}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          selectedGroup
+                            ? 'Select category'
+                            : 'Select type first'
+                        }
+                      />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {filteredCategories.map((category) => (
+                      <SelectItem
+                        key={category.category}
+                        value={category.category}
+                      >
+                        {category.categoryName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription>Choose the specific category.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         <FormField
           control={form.control}
           name="focusArea"
@@ -202,6 +247,6 @@ export default function GenerateQuestionsForm() {
           {isLoading ? 'Generating...' : 'Generate'}
         </Button>
       </form>
-    </Form>
+    </FormProvider>
   );
 }

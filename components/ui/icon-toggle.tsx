@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { BookmarkIcon, Icon, StarIcon } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { BookmarkIcon, StarIcon } from 'lucide-react';
 
 interface IconToggleProps {
   isStarred: boolean;
@@ -23,12 +22,6 @@ export function IconToggle({
       await onToggle();
     } catch (error) {
       console.error('Error toggling star status:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to toggle star status.',
-        variant: 'destructive',
-        duration: 5000,
-      });
     } finally {
       setLoading(false);
     }
