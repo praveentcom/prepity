@@ -33,6 +33,7 @@ export function Sidebar() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const parentRef = useRef<HTMLDivElement>(null);
+  const [renderKey, setRenderKey] = useState(0);
 
   /**
    * useEffect to save the requests to localStorage.
@@ -163,10 +164,11 @@ export function Sidebar() {
    * and the items are visible.
    */
   useEffect(() => {
-    if (sidebarOpen && parentRef.current) {
+    if (sidebarOpen) {
+      setRenderKey((prev) => prev + 1);
       const timer = setTimeout(() => {
         virtualizer.measure();
-      }, 100);
+      }, 150);
       return () => clearTimeout(timer);
     }
   }, [sidebarOpen, virtualizer]);
@@ -248,6 +250,7 @@ export function Sidebar() {
             </div>
           ) : (
             <div
+              key={renderKey}
               style={{
                 height: `${virtualizer.getTotalSize()}px`,
                 width: '100%',
@@ -307,7 +310,7 @@ export function Sidebar() {
         <div className="fixed inset-0 flex">
           <DialogPanel
             transition
-            className="relative mr-16 flex w-full max-w-sm flex-1 transform transition duration-300 ease-in-out data-closed:-translate-x-full h-full"
+            className="relative mr-16 w-full transform transition duration-300 ease-in-out data-closed:-translate-x-full h-full"
           >
             {/* Mobile sidebar content */}
             <TransitionChild>
@@ -333,8 +336,8 @@ export function Sidebar() {
       </div>
 
       {/* Mobile header */}
-      <div className="sticky top-0 z-40 flex items-center justify-between p-3 sm:px-6 lg:hidden bg-card">
-        <div className="flex items-center gap-x-4">
+      <div className="sticky top-0 z-40 flex items-center justify-between p-3 sm:px-6 lg:hidden bg-card border-b">
+        <div className="flex items-center gap-x-3">
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
