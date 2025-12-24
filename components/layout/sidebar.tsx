@@ -22,9 +22,8 @@ import { Input } from '../ui/input';
 import { useVirtualizer } from '@tanstack/react-virtual';
 
 /**
- * Sidebar component for the Prepity application.
- *
- * It is used to display the sidebar menu and the requests cards in desktop and mobile views.
+ * Sidebar component for the Prepity application. It is used to display
+ * the sidebar menu and the requests cards in desktop and mobile views.
  */
 export function Sidebar() {
   const router = useRouter();
@@ -35,12 +34,20 @@ export function Sidebar() {
   const [searchQuery, setSearchQuery] = useState('');
   const parentRef = useRef<HTMLDivElement>(null);
 
+  /**
+   * useEffect to save the requests to localStorage.
+   * This is used to ensure the requests are persisted across sessions.
+   */
   useEffect(() => {
     if (requests.length > 0) {
       localStorage.setItem('requests', JSON.stringify(requests));
     }
   }, [requests]);
 
+  /**
+   * useEffect to handle the requests updated event.
+   * This is used to refresh the requests when the requests are updated.
+   */
   useEffect(() => {
     const handleRequestsUpdated = () => {
       refreshRequests();
@@ -52,6 +59,10 @@ export function Sidebar() {
     };
   }, [refreshRequests]);
 
+  /**
+   * useEffect to prefetch the top 5 requests.
+   * This is used to ensure the requests are loaded quickly when the sidebar is opened.
+   */
   useEffect(() => {
     if (requests.length > 0) {
       const topRequests = requests.slice(0, 5);
@@ -82,6 +93,7 @@ export function Sidebar() {
 
   /**
    * filteredRequests filters based on search query
+   * @returns The filtered requests
    */
   const filteredRequests = useMemo(() => {
     if (!searchQuery.trim()) return requests;
@@ -111,13 +123,14 @@ export function Sidebar() {
     );
   }, [filteredRequests]);
 
-  /**
-   * Flattened list for virtualization - includes both date headers and request items
-   */
   type VirtualItem =
     | { type: 'header'; date: string }
     | { type: 'request'; request: Request };
 
+  /**
+   * flattenedItems is a memoized function that flattens the grouped requests.
+   * @returns The flattened items
+   */
   const flattenedItems = useMemo<VirtualItem[]>(() => {
     const items: VirtualItem[] = [];
     Object.entries(groupedRequests).forEach(([date, _requests]) => {
@@ -129,6 +142,10 @@ export function Sidebar() {
     return items;
   }, [groupedRequests]);
 
+  /**
+   * useVirtualizer is a hook that is used to virtualize the sidebar.
+   * @returns The virtualizer instance
+   */
   const virtualizer = useVirtualizer({
     count: flattenedItems.length,
     getScrollElement: () => parentRef.current,
@@ -137,7 +154,22 @@ export function Sidebar() {
       return item.type === 'header' ? 32 : 40;
     },
     overscan: 10,
+    enabled: true,
   });
+
+  /**
+   * useEffect to measure the virtualizer when the sidebar is open
+   * in mobile view. This is used to ensure the sidebar is scrollable
+   * and the items are visible.
+   */
+  useEffect(() => {
+    if (sidebarOpen && parentRef.current) {
+      const timer = setTimeout(() => {
+        virtualizer.measure();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [sidebarOpen, virtualizer]);
 
   /**
    * RequestCard component for the Prepity application.
@@ -177,7 +209,7 @@ export function Sidebar() {
 
   /**
    * getSidebar is a function that returns the sidebar component.
-   * @returns The sidebar component
+   * @returns The sidebar component for all screens
    */
   const getSidebar = () => {
     return (
@@ -275,7 +307,7 @@ export function Sidebar() {
         <div className="fixed inset-0 flex">
           <DialogPanel
             transition
-            className="relative mr-16 flex w-full max-w-sm flex-1 transform transition duration-300 ease-in-out data-closed:-translate-x-full"
+            className="relative mr-16 flex w-full max-w-sm flex-1 transform transition duration-300 ease-in-out data-closed:-translate-x-full h-full"
           >
             {/* Mobile sidebar content */}
             <TransitionChild>

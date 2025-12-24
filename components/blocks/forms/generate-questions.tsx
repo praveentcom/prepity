@@ -102,7 +102,7 @@ export default function GenerateQuestionsForm() {
               }}
             >
               <FormControl>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
               </FormControl>
@@ -129,7 +129,7 @@ export default function GenerateQuestionsForm() {
                   disabled={!selectedGroup}
                 >
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue
                         placeholder={
                           selectedGroup
@@ -194,7 +194,7 @@ export default function GenerateQuestionsForm() {
                   defaultValue={field.value}
                 >
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select difficulty" />
                     </SelectTrigger>
                   </FormControl>
@@ -222,7 +222,7 @@ export default function GenerateQuestionsForm() {
                   defaultValue={field.value?.toString()}
                 >
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select number of questions" />
                     </SelectTrigger>
                   </FormControl>
