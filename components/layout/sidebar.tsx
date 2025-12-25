@@ -80,15 +80,19 @@ export function Sidebar() {
    * @returns The VersionInfo component
    */
   const VersionInfo = () => (
-    <div className="flex w-full cursor-pointer items-center gap-x-3 px-4 py-2.5 hover:bg-muted border-t">
-      <div className="flex flex-col text-left">
-        <span
-          className="text-xs text-muted-foreground truncate"
-          aria-hidden="true"
-        >
-          v{packageInfo.version}
-        </span>
-      </div>
+    <div className="flex w-full items-center justify-between gap-x-3 px-4 py-2.5 border-t">
+      <span
+        className="text-xs text-muted-foreground truncate"
+        aria-hidden="true"
+      >
+        v{packageInfo.version}
+      </span>
+      <Link
+        href="mailto:mail@praveent.com"
+        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+      >
+        Provide Feedback
+      </Link>
     </div>
   );
 

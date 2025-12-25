@@ -40,19 +40,28 @@ interface TableData {
   };
 }
 
-export type ComponentData = BlockquoteData | CodeBlockData | TableData;
+export interface LatexData {
+  type: 'latex';
+  props: {
+    content: string;
+  };
+}
+
+export type ComponentData = BlockquoteData | CodeBlockData | TableData | LatexData;
 
 /**
  * Extract blockquote data from markdown content
  * @param content - The content to extract blockquotes from
  * @param componentsMap - Map of existing components to resolve placeholders
  * @param theme - Syntax highlighting theme
+ * @param renderLatex - Optional function to render latex content
  * @returns The extracted blockquotes
  */
 export function extractBlockquotes(
   content: string,
   componentsMap?: Map<string, ComponentData>,
-  theme?: HighlightTheme
+  theme?: HighlightTheme,
+  renderLatex?: (content: string) => React.ReactNode
 ): {
   content: string;
   blockquotes: Map<string, ComponentData>;
@@ -109,7 +118,8 @@ export function extractBlockquotes(
       const processedContent = processBlockquoteLines(
         blockquoteLines,
         componentsMap,
-        theme
+        theme,
+        renderLatex
       );
 
       const placeholder = `{{BLOCKQUOTE${blockquoteCounter}}}`;
@@ -136,12 +146,14 @@ export function extractBlockquotes(
  * @param lines - The lines to process
  * @param componentsMap - Map of existing components to resolve placeholders
  * @param theme - Syntax highlighting theme
+ * @param renderLatex - Optional function to render latex content
  * @returns The processed React content
  */
 function processBlockquoteLines(
   lines: { level: number; content: string }[],
   componentsMap?: Map<string, ComponentData>,
-  theme?: HighlightTheme
+  theme?: HighlightTheme,
+  renderLatex?: (content: string) => React.ReactNode
 ): React.ReactNode {
   if (lines.length === 0) return null;
 
@@ -184,14 +196,14 @@ function processBlockquoteLines(
         elements.push(<br key={`br-${i}`} />);
       }
     } else {
-      const parts = content.split(/({{(?:CODEBLOCK|TABLE)\d+}})/g);
+      const parts = content.split(/({{(?:CODEBLOCK|TABLE|LATEX)\d+}})/g);
 
       parts.forEach((part, partIndex) => {
         if (!part) return;
 
         let element: React.ReactNode = null;
 
-        if (part.match(/^{{(?:CODEBLOCK|TABLE)\d+}}$/)) {
+        if (part.match(/^{{(?:CODEBLOCK|TABLE|LATEX)\d+}}$/)) {
           const componentData = componentsMap?.get(part);
           if (componentData) {
             if (componentData.type === 'codeblock') {
@@ -206,6 +218,16 @@ function processBlockquoteLines(
                   {renderTable(componentData.props)}
                 </div>
               );
+            } else if (componentData.type === 'latex') {
+              if (renderLatex) {
+                element = (
+                  <React.Fragment key={`comp-${i}-${partIndex}`}>
+                    {renderLatex(componentData.props.content)}
+                  </React.Fragment>
+                );
+              } else {
+                element = componentData.props.content;
+              }
             }
           }
         } else {
@@ -291,6 +313,94 @@ export function extractCodeBlocks(content: string): {
 
   return { content: processedContent, codeBlocks };
 }
+
+/**
+ * Extract latex from markdown content
+ * @param content - The content to extract latex from
+ * @returns The extracted latex
+ */
+export function extractLatex(content: string): {
+  content: string;
+  latexMap: Map<string, ComponentData>;
+} {
+  const latexMap = new Map<string, ComponentData>();
+  let latexCounter = 0;
+
+  /**
+   * Pattern for multiline $$...$$
+   */
+  let processedContent = content.replace(
+    /\$\$([\s\S]+?)\$\$/g,
+    (match, tex) => {
+      const placeholder = `{{LATEX${latexCounter}}}`;
+      latexMap.set(placeholder, {
+        type: 'latex',
+        props: {
+          content: match
+        },
+      });
+      latexCounter++;
+      return placeholder;
+    }
+  );
+
+  /**
+   * Pattern for inline $...$, \[ ... \] and \( ... \)
+   */
+  processedContent = processedContent.replace(
+    /((?:^|[^\\]))(\$)([^$]+?)\2/g,
+    (match, prefix, delimiter, tex) => {
+      const placeholder = `{{LATEX${latexCounter}}}`;
+      latexMap.set(placeholder, {
+        type: 'latex',
+        props: {
+          content: `$${tex}$`
+        },
+      });
+      latexCounter++;
+      return prefix + placeholder;
+    }
+  );
+  
+  /**
+   * Pattern for \[ ... \]
+   */
+  processedContent = processedContent.replace(
+    /\\\[([\s\S]+?)\\\]/g,
+    (match, tex) => {
+      const placeholder = `{{LATEX${latexCounter}}}`;
+      latexMap.set(placeholder, {
+        type: 'latex',
+        props: {
+          content: match
+        },
+      });
+      latexCounter++;
+      return placeholder;
+    }
+  );
+  
+  /**
+   * Pattern for \( ... \)
+   */
+  processedContent = processedContent.replace(
+    /\\\(([\s\S]+?)\\\)/g,
+    (match, tex) => {
+      const placeholder = `{{LATEX${latexCounter}}}`;
+      latexMap.set(placeholder, {
+        type: 'latex',
+        props: {
+          content: match
+        },
+      });
+      latexCounter++;
+      return placeholder;
+    }
+  );
+
+  return { content: processedContent, latexMap };
+}
+
 
 /**
  * Extract tables from markdown content
@@ -446,6 +556,13 @@ export interface MarkdownProps {
    * @default "vs"
    */
   theme?: HighlightTheme;
+  /**
+   * Optional Latex component to support LaTeX rendering
+   * @example
+   * import Latex from 'react-latex-next';
+   * <Markdown content="..." useLatex={Latex} />
+   */
+  useLatex?: React.ComponentType<{ children: string }>;
 }
 
 /**
@@ -454,16 +571,37 @@ export interface MarkdownProps {
  * @param content - The markdown string to parse and render
  * @param theme - Highlight.js theme for code blocks (requires hljs-themes.css import)
  * @param className - Additional CSS classes for the container
+ * @param useLatex - Optional Latex component to render LaTeX content
  * @returns A React component that renders the parsed markdown
  */
-export function Markdown({ content, theme = 'vs', className }: MarkdownProps) {
+export function Markdown({ content, theme = 'vs', className, useLatex: LatexComponent }: MarkdownProps) {
   if (!content) return null;
 
   const { content: afterTables, tables } = extractTables(content);
   const { content: afterCodeBlocks, codeBlocks } =
     extractCodeBlocks(afterTables);
+  
+  // Conditionally extract Latex if component provided
+  let afterLatex = afterCodeBlocks;
+  let latexMap = new Map<string, ComponentData>();
+  
+  if (LatexComponent) {
+    const latexResult = extractLatex(afterCodeBlocks);
+    afterLatex = latexResult.content;
+    latexMap = latexResult.latexMap;
+  }
+
+  const renderLatex = (latexContent: string) => {
+    if (LatexComponent) {
+      return (
+        <LatexComponent>{latexContent}</LatexComponent>
+      );
+    }
+    return latexContent;
+  };
+
   const { content: afterBlockquotes, blockquotes } =
-    extractBlockquotes(afterCodeBlocks, new Map([...tables, ...codeBlocks]), theme);
+    extractBlockquotes(afterLatex, new Map([...tables, ...codeBlocks, ...latexMap]), theme, renderLatex);
 
   const html = parseMarkdown(afterBlockquotes);
 
@@ -534,7 +672,7 @@ export function Markdown({ content, theme = 'vs', className }: MarkdownProps) {
     sanitizedHtml = DOMPurify.sanitize(html, sanitizeConfig);
   }
 
-  const allComponents = new Map([...tables, ...codeBlocks, ...blockquotes]);
+  const allComponents = new Map([...tables, ...codeBlocks, ...latexMap, ...blockquotes]);
 
   const renderContent = () => {
     const parts = sanitizedHtml.split(/({{[^}]+}})/);
@@ -561,6 +699,15 @@ export function Markdown({ content, theme = 'vs', className }: MarkdownProps) {
                     {renderTable(componentData.props)}
                   </div>
                 );
+              case 'latex':
+                if (LatexComponent) {
+                   return (
+                     <LatexComponent key={`latex-${index}`}>
+                       {componentData.props.content}
+                     </LatexComponent>
+                   )
+                }
+                return componentData.props.content;
               default:
                 return null;
             }

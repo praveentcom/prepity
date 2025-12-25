@@ -4,94 +4,22 @@ import { NoObjectGeneratedError, streamObject } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { prisma } from '../../prisma';
 
-export async function generate({
-  request,
-  currentQuestionsCount,
+function getPrompt({
+  count,
+  chunkIndex,
+  totalChunks,
+  difficulty,
+  query,
+  category,
 }: {
-  request: Request;
-  currentQuestionsCount: number;
-}): Promise<Question[]> {
-  const questions: Question[] = [];
-
-  const { category, query, difficulty, initQuestionsCount } = request;
-
-  if (currentQuestionsCount >= initQuestionsCount) {
-    console.error('All questions already generated');
-    return questions;
-  }
-
-  const questionSchema = z.object({
-    question: z
-      .string()
-      .describe(
-        'The question text. Can include markdown formatting for better readability.'
-      ),
-    option1: z
-      .string()
-      .describe(
-        'First option. Can include markdown for formatting mathematical equations, code snippets, or lists.'
-      ),
-    option2: z
-      .string()
-      .describe(
-        'Second option. Can include markdown for formatting mathematical equations, code snippets, or lists.'
-      ),
-    option3: z
-      .string()
-      .describe(
-        'Third option. Can include markdown for formatting mathematical equations, code snippets, or lists.'
-      ),
-    option4: z
-      .string()
-      .describe(
-        'Fourth option. Can include markdown for formatting mathematical equations, code snippets, or lists.'
-      ),
-    correctOption: z.number().min(1).max(4),
-    explanation: z
-      .string()
-      .describe(
-        'Detailed explanation of the correct answer. Should use markdown for formatting to improve readability.'
-      ),
-    hint: z
-      .string()
-      .describe(
-        'First hint that provides strategic direction without revealing the answer. Can include markdown formatting.'
-      ),
-    hint2: z
-      .string()
-      .describe(
-        'Second hint that is more comprehensive and guides the user closer to the answer, making it easier. Can include markdown formatting.'
-      ),
-    questionType: z
-      .enum(Object.values(QuestionType) as [string, ...string[]])
-      .default(QuestionType.PLAINTEXT)
-      .describe('Specifies the format of the question.'),
-    answerType: z
-      .enum(Object.values(AnswerType) as [string, ...string[]])
-      .default(AnswerType.PLAINTEXT)
-      .describe('Specifies the format of the answer options.'),
-  });
-
-  try {
-    const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const targetCount = initQuestionsCount - currentQuestionsCount;
-    const CONCURRENCY_LIMIT = 5;
-    const CHUNK_SIZE = Math.ceil(targetCount / CONCURRENCY_LIMIT);
-
-    const chunks = Array.from({ length: CONCURRENCY_LIMIT }, (_, i) => {
-      const remaining = targetCount - i * CHUNK_SIZE;
-      return remaining > 0 ? Math.min(remaining, CHUNK_SIZE) : 0;
-    }).filter((count) => count > 0);
-
-    const generateChunk = async (count: number, chunkIndex: number, totalChunks: number) => {
-      const { elementStream } = streamObject({
-        model: openai('gpt-5.2'),
-        schema: questionSchema,
-        schemaName: 'question',
-        schemaDescription:
-          'A high-quality question with 4 options, correct answer, explanation, and two progressive hints. All text fields support markdown formatting.',
-        output: 'array',
-        prompt: `You are an expert educational content creator specializing in creating high-quality assessment questions. Generate ${count} ${difficulty.toLowerCase()} difficulty multiple-choice questions about '${query.toLowerCase().replace(/questions (about|on|regarding|concerning|related to|with respect to|in relation to) /, '')}' for the category '${category}'.
+  count: number;
+  chunkIndex: number;
+  totalChunks: number;
+  difficulty: string;
+  query: string;
+  category: string;
+}) {
+  return `You are an expert educational content creator specializing in creating high-quality assessment questions. Generate ${count} ${difficulty.toLowerCase()} difficulty multiple-choice questions about '${query.toLowerCase().replace(/questions (about|on|regarding|concerning|related to|with respect to|in relation to) /, '')}' for the category '${category}'.
 
 <chunk_diversity>
 You are generating chunk ${chunkIndex + 1} of ${totalChunks} parallel batches. To ensure NO DUPLICATE or SIMILAR questions across batches:
@@ -175,7 +103,141 @@ SECOND HINT (hint2):
 - ACCURACY: Ensure technical correctness and up-to-date information
 - COMPLETENESS: Every question must have exactly 4 options, 1 correct answer, detailed explanation, and two progressive hints
 </quality_assurance>
-`,
+`;
+}
+
+export async function generate({
+  request,
+  currentQuestionsCount,
+}: {
+  request: Request;
+  currentQuestionsCount: number;
+}): Promise<Question[]> {
+  const questions: Question[] = [];
+
+  const { category, query, difficulty, initQuestionsCount } = request;
+
+  if (currentQuestionsCount >= initQuestionsCount) {
+    console.error('All questions already generated');
+    return questions;
+  }
+
+  const questionSchema = z.object({
+    question: z
+      .string()
+      .describe(
+        'The question text. Can include markdown formatting for better readability.'
+      ),
+    option1: z
+      .string()
+      .describe(
+        'First option. Can include markdown for formatting mathematical equations, code snippets, or lists.'
+      ),
+    option2: z
+      .string()
+      .describe(
+        'Second option. Can include markdown for formatting mathematical equations, code snippets, or lists.'
+      ),
+    option3: z
+      .string()
+      .describe(
+        'Third option. Can include markdown for formatting mathematical equations, code snippets, or lists.'
+      ),
+    option4: z
+      .string()
+      .describe(
+        'Fourth option. Can include markdown for formatting mathematical equations, code snippets, or lists.'
+      ),
+    correctOption: z.number().min(1).max(4),
+    explanation: z
+      .string()
+      .describe(
+        'Detailed explanation of the correct answer. Should use markdown for formatting to improve readability.'
+      ),
+    hint: z
+      .string()
+      .describe(
+        'First hint that provides strategic direction without revealing the answer. Can include markdown formatting.'
+      ),
+    hint2: z
+      .string()
+      .describe(
+        'Second hint that is more comprehensive and guides the user closer to the answer, making it easier. Can include markdown formatting.'
+      ),
+    questionType: z
+      .enum(Object.values(QuestionType) as [string, ...string[]])
+      .default(QuestionType.PLAINTEXT)
+      .describe('Specifies the format of the question.'),
+    answerType: z
+      .enum(Object.values(AnswerType) as [string, ...string[]])
+      .default(AnswerType.PLAINTEXT)
+      .describe('Specifies the format of the answer options.'),
+  });
+
+  const targetCount = initQuestionsCount - currentQuestionsCount;
+  const CONCURRENCY_LIMIT = 5;
+  const CHUNK_SIZE = Math.ceil(targetCount / CONCURRENCY_LIMIT);
+
+  const chunks = Array.from({ length: CONCURRENCY_LIMIT }, (_, i) => {
+    const remaining = targetCount - i * CHUNK_SIZE;
+    return remaining > 0 ? Math.min(remaining, CHUNK_SIZE) : 0;
+  }).filter((count) => count > 0);
+
+  try {
+    let model: any;
+    let isFileRequest = false;
+
+    if (request.fileUri && request.mimeType) {
+      const { createGoogleGenerativeAI } = await import('@ai-sdk/google');
+      const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
+      model = google('gemini-3-pro-preview');
+      isFileRequest = true;
+    } else {
+      const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      model = openai('gpt-5.2');
+    }
+
+    const generateChunk = async (
+      count: number,
+      chunkIndex: number,
+      totalChunks: number
+    ) => {
+      const prompt = getPrompt({
+        count,
+        chunkIndex,
+        totalChunks,
+        difficulty,
+        query,
+        category,
+      });
+
+      let messages: any[] = [];
+      if (isFileRequest && request.fileUri && request.mimeType) {
+        messages = [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              {
+                type: 'file',
+                data: request.fileUri,
+                mediaType: request.mimeType,
+              },
+            ],
+          },
+        ];
+      } else {
+        messages = [{ role: 'user', content: prompt }];
+      }
+
+      const { elementStream } = streamObject({
+        model,
+        schema: questionSchema,
+        schemaName: 'question',
+        schemaDescription:
+          'A high-quality question with 4 options, correct answer, explanation, and two progressive hints. All text fields support markdown formatting.',
+        output: 'array',
+        messages,
       });
 
       for await (const element of elementStream) {
@@ -199,7 +261,9 @@ SECOND HINT (hint2):
       }
     };
 
-    await Promise.all(chunks.map((count, index) => generateChunk(count, index, chunks.length)));
+    await Promise.all(
+      chunks.map((count, index) => generateChunk(count, index, chunks.length))
+    );
 
     return questions;
   } catch (error) {
@@ -214,6 +278,6 @@ SECOND HINT (hint2):
       console.error('An unexpected error occurred:', error);
     }
 
-    return [];
+    return questions;
   }
 }

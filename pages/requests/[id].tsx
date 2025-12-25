@@ -47,6 +47,7 @@ import { IconToggle } from '@/components/ui/icon-toggle';
 import { Markdown } from '@workspace/ui/components/markdown';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 
 /**
  * Maximum polling attempts
@@ -717,6 +718,15 @@ export default function RequestPage() {
             onToggle={toggleStarStatus}
           />
           <div className="truncate">{request.title || request.query}</div>
+          {request.fileUri && (
+            <Badge className="flex gap-2">
+              <span className="relative flex h-2 w-2">
+                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-background opacity-75"></span>
+                 <span className="relative inline-flex rounded-full ml-0.25 mt-0.25 h-1.5 w-1.5 bg-background"></span>
+               </span>
+               PDF Context
+            </Badge>
+          )}
         </h1>
         <div className="flex items-center gap-4 shrink-0">
           {request.status === RequestStatus.PROCESSING && !pollingExhausted && (
@@ -1297,9 +1307,5 @@ function QuestionRenderer({
   text: string;
   type: QuestionType | AnswerType;
 }) {
-  if (type === 'LATEX') {
-    return <Latex>{text}</Latex>;
-  }
-
-  return <Markdown content={text.trim()} theme="vs" />;
+  return <Markdown content={text.trim()} theme="vs" useLatex={Latex} />;
 }

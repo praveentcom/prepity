@@ -26,6 +26,8 @@ import { v4 as uuidv4 } from 'uuid';
 import router from 'next/router';
 import { CATEGORY_LIST } from '@/lib/client/constants';
 import { useRequests } from '@/lib/client/contexts/requests-context';
+import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
 
 const generateQuestionsSchema = z.object({
   category: z
@@ -73,12 +75,38 @@ export default function GenerateQuestionsForm() {
     ? CATEGORY_LIST.filter((c) => c.group === selectedGroup)
     : [];
 
+  const [file, setFile] = useState<File | null>(null);
+
   async function onSubmit(data: z.infer<typeof generateQuestionsSchema>) {
     try {
       setIsLoading(true);
+      let fileUri: string | undefined;
+      let mimeType: string | undefined;
+
+      if (file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+          const uploadRes = await axios.post('/api/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+          fileUri = uploadRes.data.fileUri;
+          mimeType = uploadRes.data.mimeType;
+        } catch (uploadError) {
+          console.error('File upload failed:', uploadError);
+          toast.error('File upload failed', {
+            description: 'Please try again',
+          });
+          setIsLoading(false);
+          return;
+        }
+      }
+
       const response = await axios.post('/api/requests/create', {
         ...data,
         requestSlug: uuidv4(),
+        fileUri,
+        mimeType,
       });
       await refreshRequests();
       router.push(`/requests/${response.data.requestSlug}`);
@@ -182,6 +210,22 @@ export default function GenerateQuestionsForm() {
             </FormItem>
           )}
         />
+        
+        <FormItem>
+          <FormLabel>Upload PDF <span className='text-muted-foreground'>(Optional)</span></FormLabel>
+          <FormControl>
+            <Input id="file" type="file" accept='.pdf' onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setFile(file);
+                }
+              }} />
+          </FormControl>
+          <FormDescription>
+            Optionally, you can upload a PDF document to generate questions from.
+          </FormDescription>
+        </FormItem>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <FormField
             control={form.control}

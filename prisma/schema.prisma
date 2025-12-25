@@ -51,6 +51,8 @@ model Request {
   requestSlug        String       @unique
   isStarred          Boolean       @default(false)
   visibility         Visibility    @default(PRIVATE)
+  fileUri            String?
+  mimeType           String?
 }
 
 model Question {

@@ -20,6 +20,8 @@ const createRequestSchema = z.object({
   difficulty: z.nativeEnum(Difficulty).default('MEDIUM'),
   initQuestionsCount: z.number().min(1).max(50).default(10),
   requestSlug: z.string().uuid(),
+  fileUri: z.string().optional(),
+  mimeType: z.string().optional(),
 });
 
 /**
@@ -82,6 +84,8 @@ Return ONLY the title text, nothing else. No quotes, no hyphens, no colons or ot
         status: RequestStatus.PENDING,
         createdAt: new Date(),
         updatedAt: new Date(),
+        fileUri: result.data.fileUri,
+        mimeType: result.data.mimeType,
       },
     });
 
