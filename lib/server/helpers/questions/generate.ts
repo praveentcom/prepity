@@ -73,7 +73,6 @@ You are generating chunk ${chunkIndex + 1} of ${totalChunks} parallel batches. T
   * Use bullet points (-, *) or numbered lists (1., 2.) for structured information
   * Use | tables | when comparing features or organizing data
 - MATHEMATICAL NOTATION: Use LaTeX for equations (e.g., $E = mc^2$, $\\int_0^\\infty e^{-x} dx$) for expressions needed for science questions
-- CHEMICAL NOTATION: Use \\chemfig for chemical structures and reactions. It supports simple polygons (e.g., \\chemfig{*6(-=-=-=)}), branches (e.g., \\chemfig{C(-[2]H)(-[6]H)(=[1]O)H}), atoms, and angled bonds. Ensure all chemical structures are wrapped in \\chemfig{...}.
 - CODE PRESENTATION: Include proper syntax highlighting and ensure code is runnable or clearly pseudocode
 </formatting>
 
