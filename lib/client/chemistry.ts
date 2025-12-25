@@ -9,8 +9,10 @@ interface PendingRequest {
 class ChemistryBatcher {
   private static instance: ChemistryBatcher;
   private queue: Map<string, PendingRequest[]> = new Map();
+  private inFlight: Map<string, Promise<string>> = new Map();
   private timeout: NodeJS.Timeout | null = null;
   private readonly BATCH_WINDOW_MS = 50;
+  private readonly MAX_BATCH_SIZE = 15;
 
   private constructor() {}
 
@@ -22,6 +24,10 @@ class ChemistryBatcher {
   }
 
   public async fetch(content: string): Promise<string> {
+    if (this.inFlight.has(content)) {
+      return this.inFlight.get(content)!;
+    }
+
     return new Promise((resolve, reject) => {
       if (!this.queue.has(content)) {
         this.queue.set(content, []);
@@ -35,42 +41,63 @@ class ChemistryBatcher {
   }
 
   private async processQueue() {
-    const currentQueue = new Map(this.queue);
-    this.queue.clear();
     this.timeout = null;
+    
+    const allContents = Array.from(this.queue.keys());
+    const contentsToProcess = allContents.slice(0, this.MAX_BATCH_SIZE);
+    
+    if (contentsToProcess.length === 0) return;
 
-    const contents = Array.from(currentQueue.keys());
-    if (contents.length === 0) return;
+    const batchRequests: Map<string, PendingRequest[]> = new Map();
+    contentsToProcess.forEach(content => {
+      batchRequests.set(content, this.queue.get(content)!);
+      this.queue.delete(content);
+    });
 
-    try {
-      const response = await fetch('/api/render-chemistry', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ contents }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API responded with ${response.status}`);
-      }
-
-      const { results } = await response.json();
-
-      currentQueue.forEach((requests, content) => {
-        const result = results[content];
-        if (result?.url) {
-          requests.forEach(r => r.resolve(result.url));
-        } else {
-          const error = new Error(result?.error || 'Rendering failed');
-          requests.forEach(r => r.reject(error));
-        }
-      });
-    } catch (error: any) {
-      currentQueue.forEach(requests => {
-        requests.forEach(r => r.reject(error));
-      });
+    if (this.queue.size > 0) {
+      this.timeout = setTimeout(() => this.processQueue(), 10);
     }
+
+    const batchPromise = (async () => {
+      try {
+        const response = await fetch('/api/render-chemistry', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ contents: contentsToProcess }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`API responded with ${response.status}`);
+        }
+
+        const { results } = await response.json();
+        return results;
+      } catch (error: any) {
+        throw error;
+      }
+    })();
+
+    contentsToProcess.forEach(content => {
+      this.inFlight.set(content, batchPromise.then(results => {
+        const result = results[content];
+        if (result?.url) return result.url;
+        throw new Error(result?.error || 'Rendering failed');
+      }).finally(() => {
+        this.inFlight.delete(content);
+      }));
+    });
+
+    contentsToProcess.forEach(content => {
+      const requests = batchRequests.get(content)!;
+      const promise = this.inFlight.get(content)!;
+      promise.then(url => {
+        requests.forEach(r => r.resolve(url));
+      }).catch(err => {
+        requests.forEach(r => r.reject(err));
+      });
+    });
   }
 }
 
