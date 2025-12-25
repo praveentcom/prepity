@@ -764,7 +764,7 @@ export default function RequestPage() {
             {questions.map((question, index) => (
               <Card
                 key={`question-${question.id}`}
-                className={`transition-opacity duration-500 ease-in-out opacity-100`}
+                className={`transition-opacity duration-500 ease-in-out ${question.isAnswered ? 'opacity-60' : 'opacity-100'}`}
               >
                 <CardHeader>
                   <div className="flex flex-col gap-2">
