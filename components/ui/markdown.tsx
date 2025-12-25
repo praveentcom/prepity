@@ -13,7 +13,8 @@ import {
 import parseMarkdown from '@/lib/markdown/parseMarkdown';
 import { processInlineMarkdown } from '@/lib/markdown/processInlineMarkdown';
 import { cn } from '@/lib/utils';
-import React from 'react';
+import { createRoot, Root } from 'react-dom/client';
+import React, { useEffect, useRef } from 'react';
 
 interface BlockquoteData {
   type: 'blockquote';
@@ -44,6 +45,7 @@ export interface LatexData {
   type: 'latex';
   props: {
     content: string;
+    isInline: boolean;
   };
 }
 
@@ -336,7 +338,8 @@ export function extractLatex(content: string): {
       latexMap.set(placeholder, {
         type: 'latex',
         props: {
-          content: match
+          content: match,
+          isInline: false,
         },
       });
       latexCounter++;
@@ -354,7 +357,8 @@ export function extractLatex(content: string): {
       latexMap.set(placeholder, {
         type: 'latex',
         props: {
-          content: `$${tex}$`
+          content: `$${tex}$`,
+          isInline: true,
         },
       });
       latexCounter++;
@@ -372,7 +376,8 @@ export function extractLatex(content: string): {
       latexMap.set(placeholder, {
         type: 'latex',
         props: {
-          content: match
+          content: match,
+          isInline: false,
         },
       });
       latexCounter++;
@@ -390,7 +395,8 @@ export function extractLatex(content: string): {
       latexMap.set(placeholder, {
         type: 'latex',
         props: {
-          content: match
+          content: match,
+          isInline: true,
         },
       });
       latexCounter++;
@@ -575,6 +581,15 @@ export interface MarkdownProps {
  * @returns A React component that renders the parsed markdown
  */
 export function Markdown({ content, theme = 'vs', className, useLatex: LatexComponent }: MarkdownProps) {
+  const rootsRef = useRef<Map<string, Root>>(new Map());
+
+  useEffect(() => {
+    return () => {
+      rootsRef.current.forEach(root => root.unmount());
+      rootsRef.current.clear();
+    };
+  }, []);
+
   if (!content) return null;
 
   const { content: afterTables, tables } = extractTables(content);
@@ -591,6 +606,17 @@ export function Markdown({ content, theme = 'vs', className, useLatex: LatexComp
     latexMap = latexResult.latexMap;
   }
 
+  const blockLatexMap = new Map<string, ComponentData>();
+  const inlineLatexMap = new Map<string, ComponentData>();
+
+  latexMap.forEach((data, key) => {
+     if (data.type === 'latex' && data.props.isInline) {
+         inlineLatexMap.set(key, data);
+     } else {
+         blockLatexMap.set(key, data);
+     }
+  });
+
   const renderLatex = (latexContent: string) => {
     if (LatexComponent) {
       return (
@@ -601,9 +627,16 @@ export function Markdown({ content, theme = 'vs', className, useLatex: LatexComp
   };
 
   const { content: afterBlockquotes, blockquotes } =
-    extractBlockquotes(afterLatex, new Map([...tables, ...codeBlocks, ...latexMap]), theme, renderLatex);
+    extractBlockquotes(afterLatex, new Map([...tables, ...codeBlocks, ...blockLatexMap]), theme, renderLatex);
 
-  const html = parseMarkdown(afterBlockquotes);
+  let html = parseMarkdown(afterBlockquotes);
+
+  if (LatexComponent) {
+      inlineLatexMap.forEach((data, key) => {
+           const id = `latex-inline-${key.replace(/[{}]/g, '')}`;
+           html = html.replace(key, `<span id="${id}" class="latex-inline-placeholder"></span>`);
+      });
+  }
 
   /**
    * Sanitize HTML to prevent XSS attacks
@@ -672,7 +705,26 @@ export function Markdown({ content, theme = 'vs', className, useLatex: LatexComp
     sanitizedHtml = DOMPurify.sanitize(html, sanitizeConfig);
   }
 
-  const allComponents = new Map([...tables, ...codeBlocks, ...latexMap, ...blockquotes]);
+  useEffect(() => {
+    if (!LatexComponent) return;
+
+    inlineLatexMap.forEach((data, key) => {
+       const id = `latex-inline-${key.replace(/[{}]/g, '')}`;
+       const element = document.getElementById(id);
+       if (element && data.type === 'latex') {
+           if (!rootsRef.current.has(id)) {
+               const root = createRoot(element);
+               rootsRef.current.set(id, root);
+               root.render(<LatexComponent>{data.props.content}</LatexComponent>);
+           } else {
+               const root = rootsRef.current.get(id);
+               root?.render(<LatexComponent>{data.props.content}</LatexComponent>);
+           }
+       }
+    });
+  }, [sanitizedHtml, LatexComponent, inlineLatexMap]);
+
+  const allComponents = new Map([...tables, ...codeBlocks, ...blockLatexMap, ...blockquotes]);
 
   const renderContent = () => {
     const parts = sanitizedHtml.split(/({{[^}]+}})/);
