@@ -1076,6 +1076,23 @@ export default function RequestPage() {
               </Card>
             ))}
 
+            {request.fileUri &&
+              questions.length === 0 &&
+              request.status === RequestStatus.PROCESSING && (
+                <Card className="bg-muted/50 border-dashed">
+                  <CardContent className="flex flex-col gap-2 p-6">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="size-4 animate-spin text-primary" />
+                      <p className="font-medium">Analyzing your document</p>
+                    </div>
+                    <p className="text-muted-foreground text-sm">
+                      We're reading your file to generate relevant questions. This
+                      might take a minute, please hang tight!
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
             {request.status === RequestStatus.PROCESSING && (
               <QuestionSkeleton key={`skeleton-${request.id}`} />
             )}
