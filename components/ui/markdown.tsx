@@ -15,7 +15,6 @@ import { processInlineMarkdown } from '@/lib/markdown/processInlineMarkdown';
 import { cn } from '@/lib/utils';
 import { createRoot, Root } from 'react-dom/client';
 import React, { useEffect, useRef } from 'react';
-import { Chemistry } from './chemistry';
 
 interface BlockquoteData {
   type: 'blockquote';
@@ -50,14 +49,7 @@ export interface LatexData {
   };
 }
 
-export interface ChemistryData {
-  type: 'chemistry';
-  props: {
-    content: string;
-  };
-}
-
-export type ComponentData = BlockquoteData | CodeBlockData | TableData | LatexData | ChemistryData;
+export type ComponentData = BlockquoteData | CodeBlockData | TableData | LatexData;
 
 /**
  * Extract blockquote data from markdown content
@@ -348,38 +340,16 @@ export function extractLatex(content: string): {
   const latexMap = new Map<string, ComponentData>();
   let latexCounter = 0;
 
-  // Helper to split LaTeX match if it contains chemistry placeholders
   const processMatch = (tex: string, isInline: boolean, leftDelim: string, rightDelim: string) => {
-    if (!tex.includes('{{CHEMISTRY')) {
-      const placeholder = `{{LATEX${latexCounter++}}}`;
-      latexMap.set(placeholder, {
-        type: 'latex',
-        props: {
-          content: isInline ? `${leftDelim}${tex}${rightDelim}` : `${leftDelim}\n${tex.trim()}\n${rightDelim}`,
-          isInline,
-        },
-      });
-      return placeholder;
-    }
-
-    // Split by chemistry placeholders
-    const parts = tex.split(/({{CHEMISTRY\d+}})/g);
-    return parts.map(part => {
-      if (part.match(/^{{CHEMISTRY\d+}}$/)) {
-        return part;
-      }
-      if (part.trim() === '') return '';
-      
-      const placeholder = `{{LATEX${latexCounter++}}}`;
-      latexMap.set(placeholder, {
-        type: 'latex',
-        props: {
-          content: isInline ? `${leftDelim}${part}${rightDelim}` : `${leftDelim}\n${part.trim()}\n${rightDelim}`,
-          isInline,
-        },
-      });
-      return placeholder;
-    }).join('');
+    const placeholder = `{{LATEX${latexCounter++}}}`;
+    latexMap.set(placeholder, {
+      type: 'latex',
+      props: {
+        content: isInline ? `${leftDelim}${tex}${rightDelim}` : `${leftDelim}\n${tex.trim()}\n${rightDelim}`,
+        isInline,
+      },
+    });
+    return placeholder;
   };
 
   // 1. Pattern for block $$...$$
@@ -436,55 +406,6 @@ export function extractLatex(content: string): {
 
   return { content: processedContent, latexMap };
 }
-
-/**
- * Extract chemistry (chemfig) from markdown content
- * @param content - The content to extract chemistry from
- * @returns The extracted chemistry
- */
-export function extractChemistry(content: string): {
-  content: string;
-  chemistryMap: Map<string, ComponentData>;
-} {
-  const chemistryMap = new Map<string, ComponentData>();
-  let chemistryCounter = 0;
-
-  // Improved pattern to handle nested braces for \chemfig{...}
-  let result = content;
-  let startIndex = result.indexOf('\\chemfig{');
-  
-  while (startIndex !== -1) {
-    let braceCount = 1;
-    let i = startIndex + 9; // length of '\\chemfig{'
-    
-    while (i < result.length && braceCount > 0) {
-      if (result[i] === '{') braceCount++;
-      else if (result[i] === '}') braceCount--;
-      i++;
-    }
-    
-    if (braceCount === 0) {
-      const chemContent = result.substring(startIndex + 9, i - 1);
-      const placeholder = `{{CHEMISTRY${chemistryCounter}}}`;
-      
-      chemistryMap.set(placeholder, {
-        type: 'chemistry',
-        props: {
-          content: chemContent,
-        },
-      });
-      
-      result = result.substring(0, startIndex) + placeholder + result.substring(i);
-      chemistryCounter++;
-      startIndex = result.indexOf('\\chemfig{', startIndex + placeholder.length);
-    } else {
-      startIndex = result.indexOf('\\chemfig{', startIndex + 9);
-    }
-  }
-
-  return { content: result, chemistryMap };
-}
-
 
 /**
  * Extract tables from markdown content
@@ -674,15 +595,14 @@ export const Markdown = React.memo(({ content, theme = 'vs', className, useLatex
 
   const { content: afterTables, tables } = React.useMemo(() => extractTables(content), [content]);
   const { content: afterCodeBlocks, codeBlocks } = React.useMemo(() => extractCodeBlocks(afterTables), [afterTables]);
-  const { content: afterChemistry, chemistryMap } = React.useMemo(() => extractChemistry(afterCodeBlocks), [afterCodeBlocks]);
-  
+
   const { afterLatex, latexMap } = React.useMemo(() => {
     if (LatexComponent) {
-      const latexResult = extractLatex(afterChemistry);
+      const latexResult = extractLatex(afterCodeBlocks);
       return { afterLatex: latexResult.content, latexMap: latexResult.latexMap };
     }
-    return { afterLatex: afterChemistry, latexMap: new Map<string, ComponentData>() };
-  }, [LatexComponent, afterChemistry]);
+    return { afterLatex: afterCodeBlocks, latexMap: new Map<string, ComponentData>() };
+  }, [LatexComponent, afterCodeBlocks]);
 
   const { blockLatexMap, inlineLatexMap } = React.useMemo(() => {
     const blockLatexMap = new Map<string, ComponentData>();
@@ -709,12 +629,12 @@ export const Markdown = React.memo(({ content, theme = 'vs', className, useLatex
 
   const { content: afterBlockquotes, blockquotes } = React.useMemo(
     () => extractBlockquotes(
-        afterLatex, 
-        new Map([...tables, ...codeBlocks, ...chemistryMap, ...blockLatexMap, ...inlineLatexMap]), 
-        theme, 
+        afterLatex,
+        new Map([...tables, ...codeBlocks, ...blockLatexMap, ...inlineLatexMap]),
+        theme,
         renderLatex
     ),
-    [afterLatex, tables, codeBlocks, chemistryMap, blockLatexMap, inlineLatexMap, theme, renderLatex]
+    [afterLatex, tables, codeBlocks, blockLatexMap, inlineLatexMap, theme, renderLatex]
   );
 
   const sanitizedHtml = React.useMemo(() => {
@@ -726,11 +646,6 @@ export const Markdown = React.memo(({ content, theme = 'vs', className, useLatex
              html = html.replace(key, `<span id="${id}" class="latex-inline-placeholder"></span>`);
         });
     }
-
-    chemistryMap.forEach((data, key) => {
-        const id = `${uniqueId}-chemistry-${key.replace(/[{}]/g, '')}`;
-        html = html.replace(key, `<span id="${id}" class="chemistry-placeholder px-2"></span>`);
-    });
 
     const sanitizeConfig = {
       ALLOWED_TAGS: [
@@ -770,20 +685,6 @@ export const Markdown = React.memo(({ content, theme = 'vs', className, useLatex
                 console.error('Error rendering inline latex root:', err);
              }
          }
-      });
-      
-      chemistryMap.forEach((data, key) => {
-        const id = `${uniqueId}-chemistry-${key.replace(/[{}]/g, '')}`;
-        const element = document.getElementById(id);
-        if (element && data.type === 'chemistry') {
-            try {
-               const root = createRoot(element);
-               newRoots.set(id, root);
-               root.render(<Chemistry {...data.props} />);
-            } catch (err) {
-               console.error('Error rendering chemistry root:', err);
-            }
-        }
       });
 
       rootsRef.current.forEach(root => {
@@ -854,13 +755,6 @@ export const Markdown = React.memo(({ content, theme = 'vs', className, useLatex
                   <div key={`latex-${index}`} className="mb-5 min-w-0 w-full">
                     {componentData.props.content}
                   </div>
-                );
-              case 'chemistry':
-                return (
-                  <Chemistry
-                    key={`chemistry-${index}`}
-                    {...componentData.props}
-                  />
                 );
               default:
                 return null;
