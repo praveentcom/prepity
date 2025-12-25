@@ -19,6 +19,7 @@ import {
   PencilIcon,
   Sparkles,
   RefreshCw,
+  Download,
 } from 'lucide-react';
 import {
   Dialog,
@@ -710,6 +711,70 @@ export default function RequestPage() {
     }
   };
 
+  /**
+   * handleDownloadCSV function for the RequestPage component
+   * @returns The handleDownloadCSV function
+   */
+  const handleDownloadCSV = () => {
+    if (!request || questions.length === 0) return;
+
+    const headers = [
+      'question',
+      'option1',
+      'option2',
+      'option3',
+      'option4',
+      'correctOption',
+      'explanation',
+      'hint',
+      'hint2',
+      'citation',
+    ];
+
+    const rows = questions.map((q) => [
+      q.question,
+      q.option1,
+      q.option2,
+      q.option3,
+      q.option4,
+      q.correctOption,
+      q.explanation || '',
+      q.hint || '',
+      q.hint2 || '',
+      q.citation || '',
+    ]);
+
+    const escapeCSV = (val: string | number) => {
+      const stringVal = String(val);
+      if (
+        stringVal.includes(',') ||
+        stringVal.includes('"') ||
+        stringVal.includes('\n')
+      ) {
+        return `"${stringVal.replace(/"/g, '""')}"`;
+      }
+      return stringVal;
+    };
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row) => row.map(escapeCSV).join(',')),
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `prepity_questions_${request.id}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success('Download started', {
+      description: `CSV file prepity_questions_${request.id}.csv is being downloaded.`,
+    });
+  };
+
   if (isLoading || !request) {
     return <PageSkeleton />;
   }
@@ -772,6 +837,15 @@ export default function RequestPage() {
                 )}
               </Button>
             )}
+          <Button
+            size="icon"
+            variant="outline"
+            onClick={handleDownloadCSV}
+            disabled={questions.length === 0}
+            title="Download questions as CSV"
+          >
+            <Download className="size-4" />
+          </Button>
           <Dialog
             open={deleteDialogOpen}
             onOpenChange={(open) =>
