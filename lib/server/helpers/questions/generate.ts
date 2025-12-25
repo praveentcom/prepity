@@ -1,8 +1,9 @@
 import { Question, Request } from '@prisma/client';
 import { z } from 'zod';
-import { NoObjectGeneratedError, streamObject } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
+import { NoObjectGeneratedError, Output, streamText } from 'ai';
+import { createOpenAI, openai } from '@ai-sdk/openai';
 import { prisma } from '../../prisma';
+import { google } from '@ai-sdk/google';
 
 function getPrompt({
   count,
@@ -191,13 +192,12 @@ export async function generate({
       .describe(
         'Second hint that is more comprehensive and guides the user closer to the answer, making it easier. Can include markdown formatting.'
       ),
-    ...(isFileRequest && {
-      citation: z
-        .string()
-        .describe(
-          'Citation blob text explaining where in the source document this question was derived from.'
-        ),
-    }),
+    citation: z
+      .string()
+      .describe(
+        `${isFileRequest ? '[Nice to have]' : '[Optional]'} Citation blob text explaining where in the source document this question was derived from. ${isFileRequest ? 'Ideally, reference the paragraph and page number (if available) of the source document' : 'This can be trusted links, YouTube videos, or other resources.'}`
+      )
+      .nullable(),
   });
 
     const generateChunk = async (
@@ -234,24 +234,35 @@ export async function generate({
         messages = [{ role: 'user', content: prompt }];
       }
 
-      const { elementStream } = streamObject({
+      const { partialOutputStream } = streamText({
         model,
-        schema: questionSchema,
-        schemaName: 'question',
-        schemaDescription:
-          'A high-quality question with 4 options, correct answer, explanation, and two progressive hints. All text fields support markdown formatting.',
-        output: 'array',
+        output: Output.array({
+          name: 'question',
+          description:
+            'A high-quality question with 4 options, correct answer, explanation, and two progressive hints. All fields support markdown formatting.',
+          element: questionSchema
+        }),
+        tools: {
+          ...(isFileRequest ? {
+            google_search: google.tools.googleSearch({}),
+          } : {
+            web_search: openai.tools.webSearch({}),
+          })
+        },
+        toolChoice: "auto",
         messages,
       });
 
-      for await (const element of elementStream) {
-        const question = await prisma.question.create({
-          data: {
-            ...element,
-            requestId: request.id
-          },
-        });
-        questions.push(question);
+      for await (const partialOutput of partialOutputStream) {
+        for await (const element of partialOutput) {
+          const question = await prisma.question.create({
+            data: {
+              ...element,
+              requestId: request.id
+            },
+          });
+          questions.push(question);
+        }
       }
     };
 

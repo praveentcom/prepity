@@ -1,9 +1,8 @@
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Request,
   Question,
   RequestStatus,
-  AnswerType,
 } from '@prisma/client';
 import { useRouter } from 'next/router';
 import { Button } from '@/components/ui/button';
@@ -38,6 +37,7 @@ import { toast } from "sonner"
 import {
   Card,
   CardContent,
+  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -47,6 +47,12 @@ import { Markdown } from '@workspace/ui/components/markdown';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@/components/ui/hover-card';
+import { Separator } from '@/components/ui/separator';
 
 /**
  * Maximum polling attempts
@@ -720,8 +726,8 @@ export default function RequestPage() {
           {request.fileUri && (
             <Badge className="flex gap-2">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-foreground opacity-75"></span>
-                <span className="relative inline-flex rounded-full ml-0.25 mt-0.25 h-1.5 w-1.5 bg-foreground"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-foreground opacity-75"></span>
+                <span className="relative inline-flex rounded-full ml-0.25 mt-0.25 h-1.5 w-1.5 bg-primary-foreground"></span>
               </span>
               PDF Context
             </Badge>
@@ -840,11 +846,37 @@ export default function RequestPage() {
       <div className="grid grid-cols-3 gap-6">
         <div className="col-span-3 sm:col-span-2">
           <div className="grid grid-cols-1 gap-6">
+            {questions.length === 0 &&
+              request.status === RequestStatus.PROCESSING && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>
+                      <div className="flex items-center gap-2 font-medium">
+                        <Loader2 className="size-4 animate-spin text-primary" />
+                        {
+                          request.fileUri ? 'Analyzing your document based on the query...' : 'Generating questions based on the query...'
+                        }
+                      </div>
+                    </CardTitle>
+                    <CardDescription>
+                      {
+                        request.fileUri
+                          ? 'We are reading your file to generate relevant questions. This might take a minute, please hang tight!'
+                          : 'We are fetching relevant questions based on your query. This might take a minute, please hang tight!'
+                      }
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              )}
+
+            {request.status === RequestStatus.PROCESSING && (
+              <QuestionSkeleton key={`skeleton-${request.id}`} />
+            )}
             {questions.map((question, index) => (
               <Card
                 key={`question-${question.id}`}
                 id={`question-${index + 1}`}
-                className={`transition-opacity duration-500 ease-in-out ${question.isAnswered ? 'opacity-75' : 'opacity-100'}`}
+                className={`transition-opacity duration-500 ease-in-out`}
               >
                 <CardHeader>
                   <div className="flex flex-col gap-2">
@@ -861,7 +893,7 @@ export default function RequestPage() {
                         icon="bookmark"
                       />
                     </h4>
-                    <QuestionRenderer
+                    <TextRenderer
                       text={question.question}
                     />
                   </div>
@@ -922,12 +954,6 @@ export default function RequestPage() {
                                       : q
                                   ),
                                 }));
-
-                                const dimmedHintKey = 'dimmedQuestionsHintShown';
-                                if (!localStorage.getItem(dimmedHintKey)) {
-                                  localStorage.setItem(dimmedHintKey, 'true');
-                                  setUi((prev) => ({ ...prev, dimmedHintDialogOpen: true }));
-                                }
 
                                 try {
                                   const res = await fetch(
@@ -1031,7 +1057,7 @@ export default function RequestPage() {
                               }
                             }}
                           >
-                            <QuestionRenderer
+                            <TextRenderer
                               text={options[optionNum - 1]}
                             />
                           </button>
@@ -1041,7 +1067,28 @@ export default function RequestPage() {
                     {!question.isAnswered && (
                       <div className="flex gap-6 md:flex-row flex-col items-start md:items-end justify-between">
                         <HintDialog question={question} />
-                        <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors pb-0.5">
+                        <div className='flex gap-4 h-5 items-center'>
+                          {question.citation && (
+                          <HoverCard openDelay={200}>
+                            <HoverCardTrigger asChild>
+                              <span className="font-normal text-sm text-muted-foreground border-b border-dashed border-muted-foreground cursor-help">
+                                Citations
+                              </span>
+                            </HoverCardTrigger>
+                            <HoverCardContent className="w-96 font-normal">
+                              <div className="flex flex-col gap-2">
+                                <div className="flex items-center gap-2 text-muted-foreground font-medium">
+                                  <Sparkles className="size-4" />
+                                  <span>Citations</span>
+                                </div>
+                                <Separator />
+                                <TextRenderer text={question.citation} />
+                              </div>
+                            </HoverCardContent>
+                          </HoverCard>
+                        )}
+                        <Separator orientation="vertical" className='bg-muted-foreground/60' />
+                        <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors">
                           <Checkbox
                             checked={question.isMarkedForLater}
                             onCheckedChange={(checked) =>
@@ -1050,17 +1097,18 @@ export default function RequestPage() {
                           />
                           Mark for later
                         </label>
+                        </div>
                       </div>
                     )}
                   </div>
                 </CardContent>
                 {question.isAnswered && (
                   <CardFooter>
-                    <div className="text-muted-foreground grid gap-4 w-full">
+                    <div className="text-foreground grid gap-4 w-full">
                       <hr />
                       <div className="flex flex-col gap-2">
                         <p>Explanation</p>
-                        <QuestionRenderer
+                        <TextRenderer
                           text={
                             question.explanation || 'No explanation provided'
                           }
@@ -1071,34 +1119,13 @@ export default function RequestPage() {
                 )}
               </Card>
             ))}
-
-            {request.fileUri &&
-              questions.length === 0 &&
-              request.status === RequestStatus.PROCESSING && (
-                <Card className="bg-muted/50 border-dashed">
-                  <CardContent className="flex flex-col gap-2 p-6">
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="size-4 animate-spin text-primary" />
-                      <p className="font-medium">Analyzing your document</p>
-                    </div>
-                    <p className="text-muted-foreground text-sm">
-                      We're reading your file to generate relevant questions. This
-                      might take a minute, please hang tight!
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-
-            {request.status === RequestStatus.PROCESSING && (
-              <QuestionSkeleton key={`skeleton-${request.id}`} />
-            )}
           </div>
         </div>
         <div className="col-span-3 sm:col-span-1 sm:sticky sm:top-6 sm:self-start flex flex-col gap-6">
           <Card>
             <CardHeader>
               <CardTitle className='flex items-center gap-2'>
-                <Sparkles />
+                <Sparkles className='size-5' />
                 Practice Summary
               </CardTitle>
             </CardHeader>
@@ -1178,7 +1205,7 @@ export default function RequestPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Timer />
+                <Timer className='size-5' />
                 Timer
               </CardTitle>
             </CardHeader>
@@ -1236,7 +1263,7 @@ export default function RequestPage() {
           <Card>
             <CardHeader>
               <CardTitle className='flex items-center gap-2'>
-                <PencilIcon />
+                <PencilIcon className='size-5' />
                 Rough Work Area
               </CardTitle>
             </CardHeader>
@@ -1284,7 +1311,7 @@ function HintDialog({ question }: { question: Question }) {
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <QuestionRenderer
+            <TextRenderer
               text={question.hint || ''}
             />
           </div>
@@ -1300,7 +1327,7 @@ function HintDialog({ question }: { question: Question }) {
           )}
           {showHint2 && question.hint2 && (
             <div className="pt-4 border-t">
-              <QuestionRenderer
+              <TextRenderer
                 text={question.hint2}
               />
             </div>
@@ -1311,10 +1338,12 @@ function HintDialog({ question }: { question: Question }) {
   );
 }
 
-function QuestionRenderer({
+const TextRenderer = React.memo(({
   text,
 }: {
   text: string
-}) {
+}) => {
   return <Markdown content={text.trim()} theme="vs" useLatex={Latex} />;
-}
+});
+
+TextRenderer.displayName = 'TextRenderer';

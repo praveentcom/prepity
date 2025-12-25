@@ -210,7 +210,7 @@ function processBlockquoteLines(
           if (componentData) {
             if (componentData.type === 'codeblock') {
               element = (
-                <div key={`comp-${i}-${partIndex}`} className="my-2">
+                <div key={`comp-${i}-${partIndex}`} className="my-2 w-full min-w-0">
                   <CodeBlock {...componentData.props} theme={theme} />
                 </div>
               );
@@ -293,15 +293,27 @@ export function extractCodeBlocks(content: string): {
   const codeBlocks = new Map<string, ComponentData>();
   let codeBlockCounter = 0;
 
+  const regex = /^([> ]*)```(\w+)?(?:\s+filename="([^"]+)")?\n([\s\S]*?)\n\1```/gm;
+
   const processedContent = content.replace(
-    /```(\w+)?(?:\s+filename="([^"]+)")?\n([\s\S]*?)```/g,
-    (match, lang, filename, code) => {
+    regex,
+    (match, prefix, lang, filename, code) => {
       const placeholder = `{{CODEBLOCK${codeBlockCounter}}}`;
+      
+      let cleanCode = code;
+      if (prefix) {
+        const prefixTrimmed = prefix.trimEnd();
+        cleanCode = code.split('\n').map((line: any) => {
+          if (line.startsWith(prefix)) return line.slice(prefix.length);
+          if (line.trim() === prefixTrimmed) return "";
+          return line;
+        }).join('\n');
+      }
 
       codeBlocks.set(placeholder, {
         type: 'codeblock',
         props: {
-          code: code.trim(),
+          code: cleanCode.trim(),
           language: lang,
           filename: filename,
           hideLineNumbers: false,
@@ -309,7 +321,7 @@ export function extractCodeBlocks(content: string): {
       });
 
       codeBlockCounter++;
-      return placeholder;
+      return prefix + placeholder;
     }
   );
 
@@ -328,81 +340,116 @@ export function extractLatex(content: string): {
   const latexMap = new Map<string, ComponentData>();
   let latexCounter = 0;
 
-  /**
-   * Pattern for multiline $$...$$
-   */
-  let processedContent = content.replace(
-    /\$\$([\s\S]+?)\$\$/g,
-    (match, tex) => {
-      const placeholder = `{{LATEX${latexCounter}}}`;
-      latexMap.set(placeholder, {
-        type: 'latex',
-        props: {
-          content: match,
-          isInline: false,
-        },
-      });
-      latexCounter++;
-      return placeholder;
+  // 1. Pattern for block $$...$$
+  let processedContent = content.replace(/^([> ]*)\$\$\s*([\s\S]+?)\s*\n\1\$\$/gm, (match, prefix, tex) => {
+    const placeholder = `{{LATEX${latexCounter}}}`;
+    
+    let cleanTex = tex;
+    if (prefix) {
+        const prefixTrimmed = prefix.trimEnd();
+        cleanTex = tex.split('\n').map((line: string) => {
+            if (line.startsWith(prefix)) return line.slice(prefix.length);
+            if (line.trim() === prefixTrimmed) return "";
+            return line;
+        }).join('\n');
     }
-  );
 
-  /**
-   * Pattern for inline $...$, \[ ... \] and \( ... \)
-   */
-  processedContent = processedContent.replace(
-    /((?:^|[^\\]))(\$)([^$]+?)\2/g,
-    (match, prefix, delimiter, tex) => {
-      const placeholder = `{{LATEX${latexCounter}}}`;
-      latexMap.set(placeholder, {
-        type: 'latex',
-        props: {
-          content: `$${tex}$`,
-          isInline: true,
-        },
-      });
-      latexCounter++;
-      return prefix + placeholder;
+    latexMap.set(placeholder, {
+      type: 'latex',
+      props: {
+        content: `$$\n${cleanTex.trim()}\n$$`,
+        isInline: false,
+      },
+    });
+    latexCounter++;
+    return prefix + placeholder;
+  });
+
+  // 2. Fallback for single line $$...$$ or cases without clean line starts
+  processedContent = processedContent.replace(/\$\$\s*([\s\S]+?)\s*\$\$/g, (match, tex) => {
+    // If it's already a placeholder, skip
+    if (match.startsWith('{{LATEX')) return match;
+    
+    const placeholder = `{{LATEX${latexCounter}}}`;
+    latexMap.set(placeholder, {
+      type: 'latex',
+      props: {
+        content: match,
+        isInline: false,
+      },
+    });
+    latexCounter++;
+    return placeholder;
+  });
+
+  // 3. Pattern for block \[ ... \]
+  processedContent = processedContent.replace(/^([> ]*)\\\[\s*([\s\S]+?)\s*\n\1\\\]/gm, (match, prefix, tex) => {
+    const placeholder = `{{LATEX${latexCounter}}}`;
+    
+    let cleanTex = tex;
+    if (prefix) {
+        const prefixTrimmed = prefix.trimEnd();
+        cleanTex = tex.split('\n').map((line: string) => {
+            if (line.startsWith(prefix)) return line.slice(prefix.length);
+            if (line.trim() === prefixTrimmed) return "";
+            return line;
+        }).join('\n');
     }
-  );
-  
-  /**
-   * Pattern for \[ ... \]
-   */
-  processedContent = processedContent.replace(
-    /\\\[([\s\S]+?)\\\]/g,
-    (match, tex) => {
-      const placeholder = `{{LATEX${latexCounter}}}`;
-      latexMap.set(placeholder, {
-        type: 'latex',
-        props: {
-          content: match,
-          isInline: false,
-        },
-      });
-      latexCounter++;
-      return placeholder;
-    }
-  );
-  
-  /**
-   * Pattern for \( ... \)
-   */
-  processedContent = processedContent.replace(
-    /\\\(([\s\S]+?)\\\)/g,
-    (match, tex) => {
-      const placeholder = `{{LATEX${latexCounter}}}`;
-      latexMap.set(placeholder, {
-        type: 'latex',
-        props: {
-          content: match,
-          isInline: true,
-        },
-      });
-      latexCounter++;
-      return placeholder;
-    }
-  );
+
+    latexMap.set(placeholder, {
+      type: 'latex',
+      props: {
+        content: `\\[\n${cleanTex.trim()}\n\\]`,
+        isInline: false,
+      },
+    });
+    latexCounter++;
+    return prefix + placeholder;
+  });
+
+  // 4. Fallback for single line \[ ... \]
+  processedContent = processedContent.replace(/\\\[\s*([\s\S]+?)\s*\\\]/g, (match, tex) => {
+    if (match.startsWith('{{LATEX')) return match;
+    
+    const placeholder = `{{LATEX${latexCounter}}}`;
+    latexMap.set(placeholder, {
+      type: 'latex',
+      props: {
+        content: match,
+        isInline: false,
+      },
+    });
+    latexCounter++;
+    return placeholder;
+  });
+
+  // 3. Pattern for inline $...$
+  processedContent = processedContent.replace(/(^|[^\\])\$([^\$]+?)\$/g, (match, prefix, tex) => {
+    const placeholder = `{{LATEX${latexCounter}}}`;
+    latexMap.set(placeholder, {
+      type: 'latex',
+      props: {
+        content: `$${tex}$`,
+        isInline: true,
+      },
+    });
+    latexCounter++;
+    return prefix + placeholder;
+  });
+
+  // 4. Pattern for inline \( ... \)
+  processedContent = processedContent.replace(/\\\(\s*([\s\S]+?)\s*\\\)/g, (match, tex) => {
+    const placeholder = `{{LATEX${latexCounter}}}`;
+    latexMap.set(placeholder, {
+      type: 'latex',
+      props: {
+        content: match,
+        isInline: true,
+      },
+    });
+    latexCounter++;
+    return placeholder;
+  });
 
   return { content: processedContent, latexMap };
 }
@@ -425,66 +472,74 @@ export function extractTables(content: string): {
 
   while (i < lines.length) {
     const line = lines[i];
+    const prefixMatch = line?.match(/^([> ]*)/);
+    const prefix = prefixMatch ? prefixMatch[1] : '';
+    const cleanLine = prefix ? line.slice(prefix.length) : (line || '');
 
     if (
-      line?.includes('|') &&
-      i + 1 < lines.length &&
-      lines[i + 1]?.includes('|') &&
-      lines[i + 1]?.includes('-')
+      cleanLine?.includes('|') &&
+      i + 1 < lines.length
     ) {
-      const headerLine = line;
-      const separatorLine = lines[i + 1];
+      const nextLine = lines[i + 1];
+      const nextClean = prefix && nextLine?.startsWith(prefix) ? nextLine.slice(prefix.length) : (nextLine || '');
 
-      // Parse headers
-      const headers = headerLine
-        ?.split('|')
-        .map((cell: string) => cell.trim())
-        .filter((cell: string) => cell !== '');
+      if (nextClean?.includes('|') && nextClean?.includes('-')) {
+        const headerLine = cleanLine;
+        const separatorLine = nextClean;
 
-      // Parse alignments
-      const alignments = separatorLine
-        ?.split('|')
-        .map((cell: string) => {
-          const trimmed = cell.trim();
-          if (trimmed.startsWith(':') && trimmed.endsWith(':')) return 'center';
-          if (trimmed.endsWith(':')) return 'right';
-          return 'left';
-        })
-        .filter((_: string, index: number) => index < headers.length);
-
-      // Collect table rows
-      const rows: string[][] = [];
-      let j = i + 2;
-      while (j < lines.length && lines[j]?.includes('|')) {
-        const rowLine = lines[j];
-        const cells = rowLine
+        const headers = headerLine
           ?.split('|')
           .map((cell: string) => cell.trim())
           .filter((cell: string) => cell !== '');
 
-        if (cells?.length && cells.length > 0) {
-          rows.push(cells || []);
+        const alignments = separatorLine
+          ?.split('|')
+          .map((cell: string) => {
+            const trimmed = cell.trim();
+            if (trimmed.startsWith(':') && trimmed.endsWith(':')) return 'center';
+            if (trimmed.endsWith(':')) return 'right';
+            return 'left';
+          })
+          .filter((_: string, index: number) => index < headers.length);
+
+        const rows: string[][] = [];
+        let j = i + 2;
+        while (j < lines.length) {
+          const rowLineOrig = lines[j];
+          const rowClean = prefix && rowLineOrig?.startsWith(prefix) ? rowLineOrig.slice(prefix.length) : (rowLineOrig || '');
+          
+          if (!rowClean.includes('|')) break;
+
+          const cells = rowClean
+            ?.split('|')
+            .map((cell: string) => cell.trim())
+            .filter((cell: string) => cell !== '');
+
+          if (cells?.length && cells.length > 0) {
+            rows.push(cells || []);
+          }
+          j++;
         }
-        j++;
+
+        const placeholder = `{{TABLE${tableCounter}}}`;
+        tables.set(placeholder, {
+          type: 'table',
+          props: {
+            headers,
+            rows,
+            alignments: alignments || [],
+          },
+        });
+
+        tableCounter++;
+        result.push(prefix + placeholder);
+        i = j;
+        continue;
       }
-
-      const placeholder = `{{TABLE${tableCounter}}}`;
-      tables.set(placeholder, {
-        type: 'table',
-        props: {
-          headers,
-          rows,
-          alignments: alignments || [],
-        },
-      });
-
-      result.push(placeholder);
-      tableCounter++;
-      i = j;
-    } else {
-      result.push(line || '');
-      i++;
     }
+
+    result.push(line || '');
+    i++;
   }
 
   return { content: result.join('\n'), tables };
@@ -580,150 +635,130 @@ export interface MarkdownProps {
  * @param useLatex - Optional Latex component to render LaTeX content
  * @returns A React component that renders the parsed markdown
  */
-export function Markdown({ content, theme = 'vs', className, useLatex: LatexComponent }: MarkdownProps) {
+export const Markdown = React.memo(({ content, theme = 'vs', className, useLatex: LatexComponent }: MarkdownProps) => {
   const rootsRef = useRef<Map<string, Root>>(new Map());
-
-  useEffect(() => {
-    return () => {
-      rootsRef.current.forEach(root => root.unmount());
-      rootsRef.current.clear();
-    };
-  }, []);
+  const uniqueId = React.useId().replace(/:/g, '');
 
   if (!content) return null;
 
-  const { content: afterTables, tables } = extractTables(content);
-  const { content: afterCodeBlocks, codeBlocks } =
-    extractCodeBlocks(afterTables);
+  const { content: afterTables, tables } = React.useMemo(() => extractTables(content), [content]);
+  const { content: afterCodeBlocks, codeBlocks } = React.useMemo(() => extractCodeBlocks(afterTables), [afterTables]);
   
-  let afterLatex = afterCodeBlocks;
-  let latexMap = new Map<string, ComponentData>();
-  
-  if (LatexComponent) {
-    const latexResult = extractLatex(afterCodeBlocks);
-    afterLatex = latexResult.content;
-    latexMap = latexResult.latexMap;
-  }
+  const { afterLatex, latexMap } = React.useMemo(() => {
+    if (LatexComponent) {
+      const latexResult = extractLatex(afterCodeBlocks);
+      return { afterLatex: latexResult.content, latexMap: latexResult.latexMap };
+    }
+    return { afterLatex: afterCodeBlocks, latexMap: new Map<string, ComponentData>() };
+  }, [LatexComponent, afterCodeBlocks]);
 
-  const blockLatexMap = new Map<string, ComponentData>();
-  const inlineLatexMap = new Map<string, ComponentData>();
+  const { blockLatexMap, inlineLatexMap } = React.useMemo(() => {
+    const blockLatexMap = new Map<string, ComponentData>();
+    const inlineLatexMap = new Map<string, ComponentData>();
 
-  latexMap.forEach((data, key) => {
-     if (data.type === 'latex' && data.props.isInline) {
-         inlineLatexMap.set(key, data);
-     } else {
-         blockLatexMap.set(key, data);
-     }
-  });
+    latexMap.forEach((data, key) => {
+      if (data.type === 'latex' && data.props.isInline) {
+          inlineLatexMap.set(key, data);
+      } else {
+          blockLatexMap.set(key, data);
+      }
+    });
+    return { blockLatexMap, inlineLatexMap };
+  }, [latexMap]);
 
-  const renderLatex = (latexContent: string) => {
+  const renderLatex = React.useCallback((latexContent: string) => {
     if (LatexComponent) {
       return (
         <LatexComponent>{latexContent}</LatexComponent>
       );
     }
     return latexContent;
-  };
+  }, [LatexComponent]);
 
-  const { content: afterBlockquotes, blockquotes } =
-    extractBlockquotes(afterLatex, new Map([...tables, ...codeBlocks, ...blockLatexMap]), theme, renderLatex);
+  const { content: afterBlockquotes, blockquotes } = React.useMemo(
+    () => extractBlockquotes(
+        afterLatex, 
+        new Map([...tables, ...codeBlocks, ...blockLatexMap, ...inlineLatexMap]), 
+        theme, 
+        renderLatex
+    ),
+    [afterLatex, tables, codeBlocks, blockLatexMap, inlineLatexMap, theme, renderLatex]
+  );
 
-  let html = parseMarkdown(afterBlockquotes);
+  const sanitizedHtml = React.useMemo(() => {
+    let html = parseMarkdown(afterBlockquotes);
 
-  if (LatexComponent) {
-      inlineLatexMap.forEach((data, key) => {
-           const id = `latex-inline-${key.replace(/[{}]/g, '')}`;
-           html = html.replace(key, `<span id="${id}" class="latex-inline-placeholder"></span>`);
-      });
-  }
+    if (LatexComponent) {
+        inlineLatexMap.forEach((data, key) => {
+             const id = `${uniqueId}-latex-inline-${key.replace(/[{}]/g, '')}`;
+             html = html.replace(key, `<span id="${id}" class="latex-inline-placeholder"></span>`);
+        });
+    }
 
-  /**
-   * Sanitize HTML to prevent XSS attacks
-   * Only sanitize on client-side to avoid jsdom SSR issues
-   */
-  const sanitizeConfig = {
-    ALLOWED_TAGS: [
-      'h1',
-      'h2',
-      'h3',
-      'h4',
-      'h5',
-      'h6',
-      'p',
-      'br',
-      'strong',
-      'em',
-      'del',
-      'code',
-      'pre',
-      'ul',
-      'ol',
-      'li',
-      'hr',
-      'a',
-      'img',
-      'div',
-      'span',
-      'sup',
-      'kbd',
-      'svg',
-      'head',
-      'body',
-      'script',
-      'path',
-      'polyline',
-    ],
-    ALLOWED_ATTR: [
-      'href',
-      'target',
-      'rel',
-      'class',
-      'src',
-      'alt',
-      'id',
-      'defer',
-      'async',
-      'type',
-      'viewBox',
-      'fill',
-      'stroke',
-      'stroke-width',
-      'stroke-linecap',
-      'stroke-linejoin',
-      'd',
-      'points',
-    ],
-    ALLOWED_URI_REGEXP:
-      /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
-  };
+    const sanitizeConfig = {
+      ALLOWED_TAGS: [
+        'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'strong', 'em', 'del', 'code', 'pre', 'ul', 'ol', 'li', 'hr', 'a', 'img', 'div', 'span', 'sup', 'kbd', 'svg', 'head', 'body', 'script', 'path', 'polyline',
+      ],
+      ALLOWED_ATTR: [
+        'href', 'target', 'rel', 'class', 'src', 'alt', 'id', 'defer', 'async', 'type', 'viewBox', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'd', 'points',
+      ],
+      ALLOWED_URI_REGEXP:
+        /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
+    };
 
-  let sanitizedHtml = html;
-  if (typeof window !== 'undefined') {
-    const DOMPurify = require('dompurify');
-
-    sanitizedHtml = DOMPurify.sanitize(html, sanitizeConfig);
-  }
+    let result = html;
+    if (typeof window !== 'undefined') {
+      const DOMPurify = require('dompurify');
+      result = DOMPurify.sanitize(html, sanitizeConfig);
+    }
+    return result;
+  }, [afterBlockquotes, LatexComponent, inlineLatexMap, uniqueId]);
 
   useEffect(() => {
     if (!LatexComponent) return;
 
-    inlineLatexMap.forEach((data, key) => {
-       const id = `latex-inline-${key.replace(/[{}]/g, '')}`;
-       const element = document.getElementById(id);
-       if (element && data.type === 'latex') {
-           if (!rootsRef.current.has(id)) {
-               const root = createRoot(element);
-               rootsRef.current.set(id, root);
-               root.render(<LatexComponent>{data.props.content}</LatexComponent>);
-           } else {
-               const root = rootsRef.current.get(id);
-               root?.render(<LatexComponent>{data.props.content}</LatexComponent>);
-           }
-       }
-    });
-  }, [sanitizedHtml, LatexComponent, inlineLatexMap]);
+    // Use requestAnimationFrame to ensure the dangerouslySetInnerHTML has committed to the DOM
+    const handle = requestAnimationFrame(() => {
+      const newRoots = new Map<string, Root>();
 
-  const allComponents = new Map([...tables, ...codeBlocks, ...blockLatexMap, ...blockquotes]);
+      inlineLatexMap.forEach((data, key) => {
+         const id = `${uniqueId}-latex-inline-${key.replace(/[{}]/g, '')}`;
+         const element = document.getElementById(id);
+         if (element && data.type === 'latex') {
+             try {
+                const root = createRoot(element);
+                newRoots.set(id, root);
+                root.render(<LatexComponent>{data.props.content}</LatexComponent>);
+             } catch (err) {
+                console.error('Error rendering inline latex root:', err);
+             }
+         }
+      });
+
+      // Cleanup previous roots before saving new ones
+      rootsRef.current.forEach(root => {
+        try { root.unmount(); } catch {}
+      });
+      rootsRef.current = newRoots;
+    });
+
+    return () => {
+       cancelAnimationFrame(handle);
+    };
+  }, [sanitizedHtml, LatexComponent, inlineLatexMap, uniqueId]);
+
+  useEffect(() => {
+    return () => {
+      rootsRef.current.forEach(root => {
+          try {
+              root.unmount()
+          } catch(e) {}
+      });
+      rootsRef.current.clear();
+    };
+  }, []);
+
+  const allComponents = React.useMemo(() => new Map([...tables, ...codeBlocks, ...blockLatexMap, ...blockquotes]), [tables, codeBlocks, blockLatexMap, blockquotes]);
 
   const renderContent = () => {
     const parts = sanitizedHtml.split(/({{[^}]+}})/);
@@ -735,30 +770,41 @@ export function Markdown({ content, theme = 'vs', className, useLatex: LatexComp
           if (componentData) {
             switch (componentData.type) {
               case 'blockquote':
-                return componentData.content;
+                return (
+                   <div key={`blockquote-${index}`} className="min-w-0 w-full">
+                     {componentData.content}
+                   </div>
+                );
               case 'codeblock':
                 return (
                   <CodeBlock
                     key={`codeblock-${index}`}
                     {...componentData.props}
                     theme={theme}
+                    className="mb-5"
                   />
                 );
               case 'table':
                 return (
-                  <div key={`table-${index}`}>
+                  <div key={`table-${index}`} className="mb-5 min-w-0 w-full">
                     {renderTable(componentData.props)}
                   </div>
                 );
               case 'latex':
                 if (LatexComponent) {
                    return (
-                     <LatexComponent key={`latex-${index}`}>
-                       {componentData.props.content}
-                     </LatexComponent>
+                     <div key={`latex-${index}`} className="mb-5 min-w-0 w-full">
+                        <LatexComponent>
+                          {componentData.props.content}
+                        </LatexComponent>
+                     </div>
                    )
                 }
-                return componentData.props.content;
+                return (
+                  <div key={`latex-${index}`} className="mb-5 min-w-0 w-full">
+                    {componentData.props.content}
+                  </div>
+                );
               default:
                 return null;
             }
@@ -766,11 +812,11 @@ export function Markdown({ content, theme = 'vs', className, useLatex: LatexComp
           return null;
         }
 
-        const textContent = part.replace(/<[^>]*>/g, '').trim();
-        if (textContent) {
+        if (part.trim().length > 0) {
           return (
             <div
               key={`html-${index}`}
+              className="min-w-0 w-full"
               dangerouslySetInnerHTML={{ __html: part }}
             />
           );
@@ -792,4 +838,6 @@ export function Markdown({ content, theme = 'vs', className, useLatex: LatexComp
       {renderContent()}
     </article>
   );
-}
+});
+
+Markdown.displayName = 'Markdown';
