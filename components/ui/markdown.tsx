@@ -596,7 +596,6 @@ export function Markdown({ content, theme = 'vs', className, useLatex: LatexComp
   const { content: afterCodeBlocks, codeBlocks } =
     extractCodeBlocks(afterTables);
   
-  // Conditionally extract Latex if component provided
   let afterLatex = afterCodeBlocks;
   let latexMap = new Map<string, ComponentData>();
   

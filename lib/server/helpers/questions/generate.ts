@@ -11,6 +11,7 @@ function getPrompt({
   difficulty,
   query,
   category,
+  isFileRequest,
 }: {
   count: number;
   chunkIndex: number;
@@ -18,8 +19,18 @@ function getPrompt({
   difficulty: string;
   query: string;
   category: string;
+  isFileRequest?: boolean;
 }) {
-  return `You are an expert educational content creator specializing in creating high-quality assessment questions. Generate ${count} ${difficulty.toLowerCase()} difficulty multiple-choice questions about '${query.toLowerCase().replace(/questions (about|on|regarding|concerning|related to|with respect to|in relation to) /, '')}' for the category '${category}'.
+  const citationPrompt = isFileRequest
+    ? `
+<citation_guidelines>
+- CITATION: For each question, provide a citation blob that references where the question content is derived from in the provided document.
+- CONTENT: Include the specific text or concept from the PDF that the question is based on.
+- REFERENCE: Mention the section, page number (if available), or location in the document.
+</citation_guidelines>`
+    : '';
+
+  return `You are an expert educational content creator specializing in creating high-quality assessment questions. Generate ${count} ${difficulty.toLowerCase()} difficulty multiple-choice questions about '${query.toLowerCase().replace(/questions (about|on|regarding|concerning|related to|with respect to|in relation to) /, '')}' for the category '${category}'.${citationPrompt}
 
 <chunk_diversity>
 You are generating chunk ${chunkIndex + 1} of ${totalChunks} parallel batches. To ensure NO DUPLICATE or SIMILAR questions across batches:
@@ -102,6 +113,7 @@ SECOND HINT (hint2):
 - CONSISTENCY: Maintain uniform formatting and quality standards across all questions
 - ACCURACY: Ensure technical correctness and up-to-date information
 - COMPLETENESS: Every question must have exactly 4 options, 1 correct answer, detailed explanation, and two progressive hints
+- CITATIONS: If a reference document is provided, ensure the citation field is populated with the source context
 </quality_assurance>
 `;
 }
@@ -122,7 +134,31 @@ export async function generate({
     return questions;
   }
 
-  const questionSchema = z.object({
+
+  const targetCount = initQuestionsCount - currentQuestionsCount;
+  const CONCURRENCY_LIMIT = 5;
+  const CHUNK_SIZE = Math.ceil(targetCount / CONCURRENCY_LIMIT);
+
+  const chunks = Array.from({ length: CONCURRENCY_LIMIT }, (_, i) => {
+    const remaining = targetCount - i * CHUNK_SIZE;
+    return remaining > 0 ? Math.min(remaining, CHUNK_SIZE) : 0;
+  }).filter((count) => count > 0);
+
+  try {
+    let model: any;
+    let isFileRequest = false;
+
+    if (request.fileUri && request.mimeType) {
+      const { createGoogleGenerativeAI } = await import('@ai-sdk/google');
+      const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
+      model = google('gemini-3-pro-preview');
+      isFileRequest = true;
+    } else {
+      const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      model = openai('gpt-5.2');
+    }
+
+      const questionSchema = z.object({
     question: z
       .string()
       .describe(
@@ -172,30 +208,15 @@ export async function generate({
       .enum(Object.values(AnswerType) as [string, ...string[]])
       .default(AnswerType.PLAINTEXT)
       .describe('Specifies the format of the answer options.'),
+    ...(isFileRequest && {
+      citation: z
+        .string()
+        .optional()
+        .describe(
+          'Citation blob text explaining where in the source document this question was derived from.'
+        ),
+    }),
   });
-
-  const targetCount = initQuestionsCount - currentQuestionsCount;
-  const CONCURRENCY_LIMIT = 5;
-  const CHUNK_SIZE = Math.ceil(targetCount / CONCURRENCY_LIMIT);
-
-  const chunks = Array.from({ length: CONCURRENCY_LIMIT }, (_, i) => {
-    const remaining = targetCount - i * CHUNK_SIZE;
-    return remaining > 0 ? Math.min(remaining, CHUNK_SIZE) : 0;
-  }).filter((count) => count > 0);
-
-  try {
-    let model: any;
-    let isFileRequest = false;
-
-    if (request.fileUri && request.mimeType) {
-      const { createGoogleGenerativeAI } = await import('@ai-sdk/google');
-      const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
-      model = google('gemini-3-pro-preview');
-      isFileRequest = true;
-    } else {
-      const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      model = openai('gpt-5.2');
-    }
 
     const generateChunk = async (
       count: number,
@@ -209,6 +230,7 @@ export async function generate({
         difficulty,
         query,
         category,
+        isFileRequest,
       });
 
       let messages: any[] = [];
