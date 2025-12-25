@@ -348,115 +348,90 @@ export function extractLatex(content: string): {
   const latexMap = new Map<string, ComponentData>();
   let latexCounter = 0;
 
-  // 1. Pattern for block $$...$$
-  let processedContent = content.replace(/^([> ]*)\$\$\s*([\s\S]+?)\s*\n\1\$\$/gm, (match, prefix, tex) => {
-    const placeholder = `{{LATEX${latexCounter}}}`;
-    
-    let cleanTex = tex;
-    if (prefix) {
-        const prefixTrimmed = prefix.trimEnd();
-        cleanTex = tex.split('\n').map((line: string) => {
-            if (line.startsWith(prefix)) return line.slice(prefix.length);
-            if (line.trim() === prefixTrimmed) return "";
-            return line;
-        }).join('\n');
+  // Helper to split LaTeX match if it contains chemistry placeholders
+  const processMatch = (tex: string, isInline: boolean, leftDelim: string, rightDelim: string) => {
+    if (!tex.includes('{{CHEMISTRY')) {
+      const placeholder = `{{LATEX${latexCounter++}}}`;
+      latexMap.set(placeholder, {
+        type: 'latex',
+        props: {
+          content: isInline ? `${leftDelim}${tex}${rightDelim}` : `${leftDelim}\n${tex.trim()}\n${rightDelim}`,
+          isInline,
+        },
+      });
+      return placeholder;
     }
 
-    latexMap.set(placeholder, {
-      type: 'latex',
-      props: {
-        content: `$$\n${cleanTex.trim()}\n$$`,
-        isInline: false,
-      },
-    });
-    latexCounter++;
-    return prefix + placeholder;
+    // Split by chemistry placeholders
+    const parts = tex.split(/({{CHEMISTRY\d+}})/g);
+    return parts.map(part => {
+      if (part.match(/^{{CHEMISTRY\d+}}$/)) {
+        return part;
+      }
+      if (part.trim() === '') return '';
+      
+      const placeholder = `{{LATEX${latexCounter++}}}`;
+      latexMap.set(placeholder, {
+        type: 'latex',
+        props: {
+          content: isInline ? `${leftDelim}${part}${rightDelim}` : `${leftDelim}\n${part.trim()}\n${rightDelim}`,
+          isInline,
+        },
+      });
+      return placeholder;
+    }).join('');
+  };
+
+  // 1. Pattern for block $$...$$
+  let processedContent = content.replace(/^([> ]*)\$\$\s*([\s\S]+?)\s*\n\1\$\$/gm, (match, prefix, tex) => {
+    let cleanTex = tex;
+    if (prefix) {
+      const prefixTrimmed = prefix.trimEnd();
+      cleanTex = tex.split('\n').map((line: string) => {
+        if (line.startsWith(prefix)) return line.slice(prefix.length);
+        if (line.trim() === prefixTrimmed) return "";
+        return line;
+      }).join('\n');
+    }
+
+    return prefix + processMatch(cleanTex, false, '$$', '$$');
   });
 
   // 2. Fallback for single line $$...$$ or cases without clean line starts
   processedContent = processedContent.replace(/\$\$\s*([\s\S]+?)\s*\$\$/g, (match, tex) => {
-    // If it's already a placeholder, skip
     if (match.startsWith('{{LATEX')) return match;
-    
-    const placeholder = `{{LATEX${latexCounter}}}`;
-    latexMap.set(placeholder, {
-      type: 'latex',
-      props: {
-        content: match,
-        isInline: false,
-      },
-    });
-    latexCounter++;
-    return placeholder;
+    return processMatch(tex, false, '$$', '$$');
   });
 
   // 3. Pattern for block \[ ... \]
   processedContent = processedContent.replace(/^([> ]*)\\\[\s*([\s\S]+?)\s*\n\1\\\]/gm, (match, prefix, tex) => {
-    const placeholder = `{{LATEX${latexCounter}}}`;
-    
     let cleanTex = tex;
     if (prefix) {
-        const prefixTrimmed = prefix.trimEnd();
-        cleanTex = tex.split('\n').map((line: string) => {
-            if (line.startsWith(prefix)) return line.slice(prefix.length);
-            if (line.trim() === prefixTrimmed) return "";
-            return line;
-        }).join('\n');
+      const prefixTrimmed = prefix.trimEnd();
+      cleanTex = tex.split('\n').map((line: string) => {
+        if (line.startsWith(prefix)) return line.slice(prefix.length);
+        if (line.trim() === prefixTrimmed) return "";
+        return line;
+      }).join('\n');
     }
 
-    latexMap.set(placeholder, {
-      type: 'latex',
-      props: {
-        content: `\\[\n${cleanTex.trim()}\n\\]`,
-        isInline: false,
-      },
-    });
-    latexCounter++;
-    return prefix + placeholder;
+    return prefix + processMatch(cleanTex, false, '\\[', '\\]');
   });
 
   // 4. Fallback for single line \[ ... \]
   processedContent = processedContent.replace(/\\\[\s*([\s\S]+?)\s*\\\]/g, (match, tex) => {
     if (match.startsWith('{{LATEX')) return match;
-    
-    const placeholder = `{{LATEX${latexCounter}}}`;
-    latexMap.set(placeholder, {
-      type: 'latex',
-      props: {
-        content: match,
-        isInline: false,
-      },
-    });
-    latexCounter++;
-    return placeholder;
+    return processMatch(tex, false, '\\[', '\\]');
   });
 
-  // 3. Pattern for inline $...$
+  // 5. Pattern for inline $...$
   processedContent = processedContent.replace(/(^|[^\\])\$([^\$]+?)\$/g, (match, prefix, tex) => {
-    const placeholder = `{{LATEX${latexCounter}}}`;
-    latexMap.set(placeholder, {
-      type: 'latex',
-      props: {
-        content: `$${tex}$`,
-        isInline: true,
-      },
-    });
-    latexCounter++;
-    return prefix + placeholder;
+    return prefix + processMatch(tex, true, '$', '$');
   });
 
-  // 4. Pattern for inline \( ... \)
+  // 6. Pattern for inline \( ... \)
   processedContent = processedContent.replace(/\\\(\s*([\s\S]+?)\s*\\\)/g, (match, tex) => {
-    const placeholder = `{{LATEX${latexCounter}}}`;
-    latexMap.set(placeholder, {
-      type: 'latex',
-      props: {
-        content: match,
-        isInline: true,
-      },
-    });
-    latexCounter++;
-    return placeholder;
+    return processMatch(tex, true, '\\(', '\\)');
   });
 
   return { content: processedContent, latexMap };

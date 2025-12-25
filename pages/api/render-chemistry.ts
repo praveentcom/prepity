@@ -2,6 +2,25 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 
 const CACHE = new Map<string, string>();
 
+async function fetchWithRetry(url: string, options: any, retries = 3, backoff = 1000): Promise<Response> {
+  try {
+    const response = await fetch(url, { ...options, signal: AbortSignal.timeout(10000) });
+    if (response.status === 503 || response.status === 500) {
+      if (retries > 0) {
+        await new Promise(resolve => setTimeout(resolve, backoff));
+        return fetchWithRetry(url, options, retries - 1, backoff * 2);
+      }
+    }
+    return response;
+  } catch (error: any) {
+    if (retries > 0) {
+      await new Promise(resolve => setTimeout(resolve, backoff));
+      return fetchWithRetry(url, options, retries - 1, backoff * 2);
+    }
+    throw error;
+  }
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -30,7 +49,7 @@ export default async function handler(
     params.append('remhost', 'quicklatex.com');
     params.append('preamble', '\\usepackage{chemfig}');
 
-    const response = await fetch('https://quicklatex.com/latex3.f', {
+    const response = await fetchWithRetry('https://quicklatex.com/latex3.f', {
       method: 'POST',
       body: params,
       headers: {
@@ -60,6 +79,6 @@ export default async function handler(
     res.status(200).json({ url: imageUrl });
   } catch (error: any) {
     console.error('Chemistry rendering error:', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    res.status(503).json({ error: 'Chemistry rendering service is temporarily unavailable. Please try again later.' });
   }
 }
