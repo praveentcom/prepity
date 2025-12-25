@@ -1,9 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
 }
 
-generator client {
-  provider = "prisma-client-js"
+model Request {
+  id                 Int           @id @default(autoincrement())
+  category           String
+  query              String
+  status             RequestStatus @default(PENDING)
+  difficulty         Difficulty    @default(MEDIUM)
+  initQuestionsCount Int           @default(10)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  requestSlug        String        @unique
+  isStarred          Boolean       @default(false)
+  visibility         Visibility    @default(PRIVATE)
+  title              String?
+  fileUri            String?
+  mimeType           String?
+  questions          Question[]
+}
+
+model Question {
+  id               Int       @id @default(autoincrement())
+  question         String
+  option1          String
+  option2          String
+  option3          String
+  option4          String
+  correctOption    Int       @db.SmallInt
+  explanation      String?
+  hint             String?
+  requestId        Int
+  isStarred        Boolean   @default(false)
+  isAnswered       Boolean   @default(false)
+  userAnswer       Int?      @db.SmallInt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  answeredAt       DateTime?
+  hint2            String?
+  isMarkedForLater Boolean   @default(false)
+  citation         String?
+  request          Request   @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
 }
 
 enum RequestStatus {
@@ -23,47 +66,4 @@ enum Difficulty {
 enum Visibility {
   PRIVATE
   PUBLIC
-}
-
-model Request {
-  id                 Int           @id @default(autoincrement())
-  title              String?
-  category           String
-  query              String       @db.Text
-  status             RequestStatus @default(PENDING)
-  difficulty         Difficulty    @default(MEDIUM)
-  initQuestionsCount Int          @default(10)
-  questions          Question[]
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
-  requestSlug        String       @unique
-  isStarred          Boolean       @default(false)
-  visibility         Visibility    @default(PRIVATE)
-  fileUri            String?
-  mimeType           String?
-}
-
-model Question {
-  id               Int      @id @default(autoincrement())
-  question         String   @db.Text
-  option1          String
-  option2          String
-  option3          String
-  option4          String
-  correctOption    Int      @db.SmallInt
-  explanation      String?  @db.Text
-  hint            String?  @db.Text
-  hint2           String?  @db.Text
-  requestId       Int
-  request         Request   @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  isStarred       Boolean  @default(false)
-  isAnswered      Boolean  @default(false)
-  isMarkedForLater Boolean @default(false)
-  userAnswer      Int?     @db.SmallInt
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  answeredAt      DateTime?
-  citation        String?
-
-  @@index([requestId])
 }
