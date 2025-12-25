@@ -1,4 +1,4 @@
-import { AnswerType, Question, QuestionType, Request } from '@prisma/client';
+import { Question, Request } from '@prisma/client';
 import { z } from 'zod';
 import { NoObjectGeneratedError, streamObject } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
@@ -71,18 +71,9 @@ You are generating chunk ${chunkIndex + 1} of ${totalChunks} parallel batches. T
   * Use > blockquotes for scenarios, requirements, or important context
   * Use bullet points (-, *) or numbered lists (1., 2.) for structured information
   * Use | tables | when comparing features or organizing data
-- MATHEMATICAL NOTATION: Use LaTeX for equations (e.g., $E = mc^2$, $\\int_0^\\infty e^{-x} dx$)
+- MATHEMATICAL NOTATION: Use LaTeX for equations (e.g., $E = mc^2$, $\\int_0^\\infty e^{-x} dx$) for expressions needed for science questions
 - CODE PRESENTATION: Include proper syntax highlighting and ensure code is runnable or clearly pseudocode
 </formatting>
-
-<content_types>
-- Set questionType to LATEX when the question itself contains mathematical equations or formulas
-- Set answerType to LATEX when any answer option contains mathematical equations or formulas
-- Set questionType to CODE when the question presents a code snippet to analyze
-- Set answerType to CODE when answer options are code blocks or code snippets
-- Use PLAINTEXT for general text, markdown formatting, and non-specialized content
-- It's not necessary for both questionType and answerType to match - set them independently based on content
-</content_types>
 
 <explanations>
 - START WITH THE ANSWER: Begin by clearly stating why the correct option is right
@@ -158,7 +149,7 @@ export async function generate({
       model = openai('gpt-5.2');
     }
 
-      const questionSchema = z.object({
+  const questionSchema = z.object({
     question: z
       .string()
       .describe(
@@ -200,18 +191,9 @@ export async function generate({
       .describe(
         'Second hint that is more comprehensive and guides the user closer to the answer, making it easier. Can include markdown formatting.'
       ),
-    questionType: z
-      .enum(Object.values(QuestionType) as [string, ...string[]])
-      .default(QuestionType.PLAINTEXT)
-      .describe('Specifies the format of the question.'),
-    answerType: z
-      .enum(Object.values(AnswerType) as [string, ...string[]])
-      .default(AnswerType.PLAINTEXT)
-      .describe('Specifies the format of the answer options.'),
     ...(isFileRequest && {
       citation: z
         .string()
-        .optional()
         .describe(
           'Citation blob text explaining where in the source document this question was derived from.'
         ),
@@ -266,17 +248,7 @@ export async function generate({
         const question = await prisma.question.create({
           data: {
             ...element,
-            requestId: request.id,
-            questionType: element.question.includes('$')
-              ? QuestionType.LATEX
-              : (element.questionType as QuestionType),
-            answerType:
-              element.option1.includes('$') ||
-              element.option2.includes('$') ||
-              element.option3.includes('$') ||
-              element.option4.includes('$')
-                ? AnswerType.LATEX
-                : (element.answerType as AnswerType),
+            requestId: request.id
           },
         });
         questions.push(question);

@@ -3,7 +3,6 @@ import {
   Request,
   Question,
   RequestStatus,
-  QuestionType,
   AnswerType,
 } from '@prisma/client';
 import { useRouter } from 'next/router';
@@ -864,7 +863,6 @@ export default function RequestPage() {
                     </h4>
                     <QuestionRenderer
                       text={question.question}
-                      type={question.questionType}
                     />
                   </div>
                 </CardHeader>
@@ -1035,7 +1033,6 @@ export default function RequestPage() {
                           >
                             <QuestionRenderer
                               text={options[optionNum - 1]}
-                              type={question.answerType}
                             />
                           </button>
                         );
@@ -1067,7 +1064,6 @@ export default function RequestPage() {
                           text={
                             question.explanation || 'No explanation provided'
                           }
-                          type={question.answerType}
                         />
                       </div>
                     </div>
@@ -1290,7 +1286,6 @@ function HintDialog({ question }: { question: Question }) {
           <div>
             <QuestionRenderer
               text={question.hint || ''}
-              type={question.questionType}
             />
           </div>
           {!showHint2 && question.hint2 && (
@@ -1307,7 +1302,6 @@ function HintDialog({ question }: { question: Question }) {
             <div className="pt-4 border-t">
               <QuestionRenderer
                 text={question.hint2}
-                type={question.questionType}
               />
             </div>
           )}
@@ -1319,10 +1313,8 @@ function HintDialog({ question }: { question: Question }) {
 
 function QuestionRenderer({
   text,
-  type,
 }: {
-  text: string;
-  type: QuestionType | AnswerType;
+  text: string
 }) {
   return <Markdown content={text.trim()} theme="vs" useLatex={Latex} />;
 }

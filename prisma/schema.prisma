@@ -25,18 +25,6 @@ enum Visibility {
   PUBLIC
 }
 
-enum QuestionType {
-  PLAINTEXT
-  LATEX
-  CODE
-}
-
-enum AnswerType {
-  PLAINTEXT
-  LATEX
-  CODE
-}
-
 model Request {
   id                 Int           @id @default(autoincrement())
   title              String?
@@ -75,8 +63,6 @@ model Question {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   answeredAt      DateTime?
-  questionType    QuestionType
-  answerType      AnswerType
   citation        String?
 
   @@index([requestId])
