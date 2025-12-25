@@ -146,6 +146,7 @@ export default function RequestPage() {
     isRetrying: false,
     deleteDialogOpen: false,
     pollingExhausted: false,
+    dimmedHintDialogOpen: false,
   });
 
   const { request, questions } = data;
@@ -155,6 +156,7 @@ export default function RequestPage() {
     isRetrying,
     deleteDialogOpen,
     pollingExhausted,
+    dimmedHintDialogOpen,
   } = ui;
 
   const fetchRequestData = useCallback(
@@ -756,6 +758,26 @@ export default function RequestPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          <Dialog
+            open={dimmedHintDialogOpen}
+            onOpenChange={(open) =>
+              setUi((prev) => ({ ...prev, dimmedHintDialogOpen: open }))
+            }
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Answered questions are dimmed 👀</DialogTitle>
+                <DialogDescription>
+                  This makes it easier to identify the unanswered ones. Keep going!
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button>Got it!</Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
       <div className="grid grid-cols-3 gap-6">
@@ -843,6 +865,12 @@ export default function RequestPage() {
                                       : q
                                   ),
                                 }));
+
+                                const dimmedHintKey = 'dimmedQuestionsHintShown';
+                                if (!localStorage.getItem(dimmedHintKey)) {
+                                  localStorage.setItem(dimmedHintKey, 'true');
+                                  setUi((prev) => ({ ...prev, dimmedHintDialogOpen: true }));
+                                }
 
                                 try {
                                   const res = await fetch(
