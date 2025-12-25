@@ -100,8 +100,12 @@ function parseMarkdown(content: string, currentHost: string = ''): string {
     /`([^`]+)`/g,
     (match, content) => {
       const placeholder = `{{CODESPAN${codeSpanCounter}}}`;
+      const escapedContent = content
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
       codeSpans.push(
-        `<code class="bg-border/50 px-1 py-0.5 rounded border border-border text-xs font-mono">${content}</code>`
+        `<code class="bg-border/50 px-1 py-0.5 rounded border border-border text-xs font-mono">${escapedContent}</code>`
       );
       codeSpanCounter++;
       return placeholder;

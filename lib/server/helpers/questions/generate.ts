@@ -74,15 +74,37 @@ export async function generate({
 
   try {
     const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const targetCount = initQuestionsCount - currentQuestionsCount;
+    const CONCURRENCY_LIMIT = 5;
+    const CHUNK_SIZE = Math.ceil(targetCount / CONCURRENCY_LIMIT);
 
-    const { elementStream } = streamObject({
-      model: openai('gpt-5.2'),
-      schema: questionSchema,
-      schemaName: 'question',
-      schemaDescription:
-        'A high-quality question with 4 options, correct answer, explanation, and two progressive hints. All text fields support markdown formatting.',
-      output: 'array',
-      prompt: `You are an expert educational content creator specializing in creating high-quality assessment questions. Generate ${initQuestionsCount - currentQuestionsCount} ${difficulty.toLowerCase()} difficulty multiple-choice questions about '${query.toLowerCase().replace(/questions (about|on|regarding|concerning|related to|with respect to|in relation to) /, '')}' for the category '${category}'.
+    const chunks = Array.from({ length: CONCURRENCY_LIMIT }, (_, i) => {
+      const remaining = targetCount - i * CHUNK_SIZE;
+      return remaining > 0 ? Math.min(remaining, CHUNK_SIZE) : 0;
+    }).filter((count) => count > 0);
+
+    const generateChunk = async (count: number, chunkIndex: number, totalChunks: number) => {
+      const { elementStream } = streamObject({
+        model: openai('gpt-5.2'),
+        schema: questionSchema,
+        schemaName: 'question',
+        schemaDescription:
+          'A high-quality question with 4 options, correct answer, explanation, and two progressive hints. All text fields support markdown formatting.',
+        output: 'array',
+        prompt: `You are an expert educational content creator specializing in creating high-quality assessment questions. Generate ${count} ${difficulty.toLowerCase()} difficulty multiple-choice questions about '${query.toLowerCase().replace(/questions (about|on|regarding|concerning|related to|with respect to|in relation to) /, '')}' for the category '${category}'.
+
+<chunk_diversity>
+You are generating chunk ${chunkIndex + 1} of ${totalChunks} parallel batches. To ensure NO DUPLICATE or SIMILAR questions across batches:
+- Focus on UNIQUE sub-topics, scenarios, and angles not likely covered by other chunks
+- Chunk 1: Focus on foundational concepts and definitions
+- Chunk 2: Focus on practical applications and real-world scenarios
+- Chunk 3: Focus on edge cases, comparisons, and contrasts
+- Chunk 4: Focus on problem-solving and debugging scenarios
+- Chunk 5: Focus on advanced concepts and integration topics
+- Use DISTINCT examples, code snippets, and scenarios from other potential chunks
+- Vary the question structure (what/why/how/when/which)
+</chunk_diversity>
+
 
 <difficulty_guidelines>
 - EASY: Test fundamental concepts, definitions, and basic recall. Focus on recognition and comprehension.
@@ -154,33 +176,30 @@ SECOND HINT (hint2):
 - COMPLETENESS: Every question must have exactly 4 options, 1 correct answer, detailed explanation, and two progressive hints
 </quality_assurance>
 `,
-    });
-
-    const targetCount = initQuestionsCount - currentQuestionsCount;
-
-    for await (const element of elementStream) {
-      if (questions.length >= targetCount) {
-        break;
-      }
-
-      const question = await prisma.question.create({
-        data: {
-          ...element,
-          requestId: request.id,
-          questionType: element.question.includes('$')
-            ? QuestionType.LATEX
-            : (element.questionType as QuestionType),
-          answerType:
-            element.option1.includes('$') ||
-            element.option2.includes('$') ||
-            element.option3.includes('$') ||
-            element.option4.includes('$')
-              ? AnswerType.LATEX
-              : (element.answerType as AnswerType),
-        },
       });
-      questions.push(question);
-    }
+
+      for await (const element of elementStream) {
+        const question = await prisma.question.create({
+          data: {
+            ...element,
+            requestId: request.id,
+            questionType: element.question.includes('$')
+              ? QuestionType.LATEX
+              : (element.questionType as QuestionType),
+            answerType:
+              element.option1.includes('$') ||
+              element.option2.includes('$') ||
+              element.option3.includes('$') ||
+              element.option4.includes('$')
+                ? AnswerType.LATEX
+                : (element.answerType as AnswerType),
+          },
+        });
+        questions.push(question);
+      }
+    };
+
+    await Promise.all(chunks.map((count, index) => generateChunk(count, index, chunks.length)));
 
     return questions;
   } catch (error) {

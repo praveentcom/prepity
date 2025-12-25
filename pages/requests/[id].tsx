@@ -667,7 +667,7 @@ export default function RequestPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-row items-center justify-between gap-2">
+      <div className="flex flex-row items-center justify-between gap-4">
         <h1 className="text-lg truncate font-medium flex items-center gap-2">
           <IconToggle
             isStarred={request.isStarred}

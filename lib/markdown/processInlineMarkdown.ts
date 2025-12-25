@@ -61,8 +61,12 @@ export function processInlineMarkdown(
     /`([^`]+)`/g,
     (_match: string, codeContent: string) => {
       const placeholder = `{{CODESPAN${codeSpanCounter}}}`;
+      const escapedContent = codeContent
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
       codeSpans.push(
-        `<code class="bg-border/50 px-1 py-0.5 rounded border border-border text-xs font-mono">${codeContent}</code>`
+        `<code class="bg-border/50 px-1 py-0.5 rounded border border-border text-xs font-mono">${escapedContent}</code>`
       );
       codeSpanCounter++;
       return placeholder;

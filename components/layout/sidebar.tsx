@@ -152,7 +152,7 @@ export function Sidebar() {
     getScrollElement: () => parentRef.current,
     estimateSize: (index) => {
       const item = flattenedItems[index];
-      return item.type === 'header' ? 32 : 40;
+      return item.type === 'header' ? 32 : 42;
     },
     overscan: 10,
     enabled: true,
@@ -284,7 +284,7 @@ export function Sidebar() {
                         {item.date}
                       </h3>
                     ) : (
-                      <div className="p-2">
+                      <div className="px-2 py-1">
                         <RequestCard request={item.request} />
                       </div>
                     )}
