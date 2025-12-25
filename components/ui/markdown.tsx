@@ -727,6 +727,11 @@ export const Markdown = React.memo(({ content, theme = 'vs', className, useLatex
         });
     }
 
+    chemistryMap.forEach((data, key) => {
+        const id = `${uniqueId}-chemistry-${key.replace(/[{}]/g, '')}`;
+        html = html.replace(key, `<span id="${id}" class="chemistry-placeholder px-2"></span>`);
+    });
+
     const sanitizeConfig = {
       ALLOWED_TAGS: [
         'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'strong', 'em', 'del', 'code', 'pre', 'ul', 'ol', 'li', 'hr', 'a', 'img', 'div', 'span', 'sup', 'kbd', 'svg', 'head', 'body', 'script', 'path', 'polyline',
@@ -766,8 +771,21 @@ export const Markdown = React.memo(({ content, theme = 'vs', className, useLatex
              }
          }
       });
+      
+      chemistryMap.forEach((data, key) => {
+        const id = `${uniqueId}-chemistry-${key.replace(/[{}]/g, '')}`;
+        const element = document.getElementById(id);
+        if (element && data.type === 'chemistry') {
+            try {
+               const root = createRoot(element);
+               newRoots.set(id, root);
+               root.render(<Chemistry {...data.props} />);
+            } catch (err) {
+               console.error('Error rendering chemistry root:', err);
+            }
+        }
+      });
 
-      // Cleanup previous roots before saving new ones
       rootsRef.current.forEach(root => {
         try { root.unmount(); } catch {}
       });
@@ -790,7 +808,7 @@ export const Markdown = React.memo(({ content, theme = 'vs', className, useLatex
     };
   }, []);
 
-  const allComponents = React.useMemo(() => new Map([...tables, ...codeBlocks, ...chemistryMap, ...blockLatexMap, ...blockquotes]), [tables, codeBlocks, chemistryMap, blockLatexMap, blockquotes]);
+  const allComponents = React.useMemo(() => new Map([...tables, ...codeBlocks, ...blockLatexMap, ...blockquotes]), [tables, codeBlocks, blockLatexMap, blockquotes]);
 
   const renderContent = () => {
     const parts = sanitizedHtml.split(/({{[^}]+}})/);
