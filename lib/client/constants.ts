@@ -65,6 +65,44 @@ export const CATEGORY_LIST = [
     group: 'Certifications',
   },
 
+  // Indian Competitive Exams
+  {
+    category: 'neet-exam',
+    categoryName: 'NEET (Medical)',
+    placeholder: 'Biology: Human Physiology, Physics: Optics...',
+    group: 'Indian Exams',
+  },
+  {
+    category: 'jee-exam',
+    categoryName: 'JEE (Engineering)',
+    placeholder: 'Physics: Rotational Motion, Maths: Calculus...',
+    group: 'Indian Exams',
+  },
+  {
+    category: 'upsc-civil-services',
+    categoryName: 'UPSC Civil Services',
+    placeholder: 'General Studies Paper I, Indian Polity...',
+    group: 'Indian Exams',
+  },
+  {
+    category: 'gate-exam',
+    categoryName: 'GATE (Engineering)',
+    placeholder: 'Computer Science: Algorithms, Operating Systems...',
+    group: 'Indian Exams',
+  },
+  {
+    category: 'cat-exam',
+    categoryName: 'CAT (MBA)',
+    placeholder: 'Quantitative Ability, Logical Reasoning...',
+    group: 'Indian Exams',
+  },
+  {
+    category: 'ca-exam',
+    categoryName: 'Chartered Accountancy (ICAI)',
+    placeholder: 'CA Inter: Taxation, Cost Accounting...',
+    group: 'Indian Exams',
+  },
+
   // Technical Interviews
   {
     category: 'software-engineering',
