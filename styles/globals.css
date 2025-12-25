@@ -197,6 +197,18 @@
   color: #fca5a5;
 }
 
+@utility answer-marked {
+  background-color: rgba(253, 224, 71, 0.35);
+  border-color: rgba(250, 204, 21, 0.5);
+  color: #854d0e;
+}
+
+@utility answer-marked-dark {
+  background-color: rgba(133, 77, 14, 0.25);
+  border-color: rgba(250, 204, 21, 0.4);
+  color: #fde047;
+}
+
 @layer utilities {
   /* Code Styles */
   .hljs {

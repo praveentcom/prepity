@@ -45,9 +45,15 @@ export type ComponentData = BlockquoteData | CodeBlockData | TableData;
 /**
  * Extract blockquote data from markdown content
  * @param content - The content to extract blockquotes from
+ * @param componentsMap - Map of existing components to resolve placeholders
+ * @param theme - Syntax highlighting theme
  * @returns The extracted blockquotes
  */
-export function extractBlockquotes(content: string): {
+export function extractBlockquotes(
+  content: string,
+  componentsMap?: Map<string, ComponentData>,
+  theme?: HighlightTheme
+): {
   content: string;
   blockquotes: Map<string, ComponentData>;
 } {
@@ -100,7 +106,11 @@ export function extractBlockquotes(content: string): {
         }
       }
 
-      const processedContent = processBlockquoteLines(blockquoteLines);
+      const processedContent = processBlockquoteLines(
+        blockquoteLines,
+        componentsMap,
+        theme
+      );
 
       const placeholder = `{{BLOCKQUOTE${blockquoteCounter}}}`;
       blockquotes.set(placeholder, {
@@ -124,10 +134,14 @@ export function extractBlockquotes(content: string): {
 /**
  * Process blockquote lines into React content
  * @param lines - The lines to process
+ * @param componentsMap - Map of existing components to resolve placeholders
+ * @param theme - Syntax highlighting theme
  * @returns The processed React content
  */
 function processBlockquoteLines(
-  lines: { level: number; content: string }[]
+  lines: { level: number; content: string }[],
+  componentsMap?: Map<string, ComponentData>,
+  theme?: HighlightTheme
 ): React.ReactNode {
   if (lines.length === 0) return null;
 
@@ -138,7 +152,6 @@ function processBlockquoteLines(
   for (let i = 0; i < lines.length; i++) {
     const { level, content } = lines[i] || { level: 0, content: '' };
 
-    // Handle nesting - close elements if we're going to a lower level
     while (currentLevel > level) {
       const children = openElements.pop() || [];
       if (children && children.length > 0) {
@@ -159,13 +172,11 @@ function processBlockquoteLines(
       currentLevel--;
     }
 
-    // Handle nesting - open elements if we're going to a higher level
     while (currentLevel < level) {
       openElements.push([]);
       currentLevel++;
     }
 
-    // Add content
     if (content.trim() === '') {
       if (openElements.length > 0) {
         openElements[openElements.length - 1]?.push(<br key={`br-${i}`} />);
@@ -173,31 +184,61 @@ function processBlockquoteLines(
         elements.push(<br key={`br-${i}`} />);
       }
     } else {
-      const processedContent = processInlineMarkdown(content);
-      const contentElement = (
-        <span
-          key={`content-${i}`}
-          dangerouslySetInnerHTML={{ __html: processedContent }}
-        />
-      );
-      if (openElements.length > 0) {
-        openElements[openElements.length - 1]?.push(contentElement);
-        // Add line break if not the last line
-        if (i < lines.length - 1) {
+      const parts = content.split(/({{(?:CODEBLOCK|TABLE)\d+}})/g);
+
+      parts.forEach((part, partIndex) => {
+        if (!part) return;
+
+        let element: React.ReactNode = null;
+
+        if (part.match(/^{{(?:CODEBLOCK|TABLE)\d+}}$/)) {
+          const componentData = componentsMap?.get(part);
+          if (componentData) {
+            if (componentData.type === 'codeblock') {
+              element = (
+                <div key={`comp-${i}-${partIndex}`} className="my-2">
+                  <CodeBlock {...componentData.props} theme={theme} />
+                </div>
+              );
+            } else if (componentData.type === 'table') {
+              element = (
+                <div key={`comp-${i}-${partIndex}`}>
+                  {renderTable(componentData.props)}
+                </div>
+              );
+            }
+          }
+        } else {
+          const processedContent = processInlineMarkdown(part);
+          element = (
+            <span
+              key={`content-${i}-${partIndex}`}
+              dangerouslySetInnerHTML={{ __html: processedContent }}
+            />
+          );
+        }
+
+        if (element) {
+          if (openElements.length > 0) {
+            openElements[openElements.length - 1]?.push(element);
+          } else {
+            elements.push(element);
+          }
+        }
+      });
+
+      if (i < lines.length - 1) {
+        if (openElements.length > 0) {
           openElements[openElements.length - 1]?.push(
             <br key={`br-after-${i}`} />
           );
-        }
-      } else {
-        elements.push(contentElement);
-        if (i < lines.length - 1) {
+        } else {
           elements.push(<br key={`br-after-${i}`} />);
         }
       }
     }
   }
 
-  // Close all remaining open elements
   while (openElements.length > 0) {
     const children = openElements.pop() || [];
     if (children && children.length > 0) {
@@ -422,7 +463,7 @@ export function Markdown({ content, theme = 'vs', className }: MarkdownProps) {
   const { content: afterCodeBlocks, codeBlocks } =
     extractCodeBlocks(afterTables);
   const { content: afterBlockquotes, blockquotes } =
-    extractBlockquotes(afterCodeBlocks);
+    extractBlockquotes(afterCodeBlocks, new Map([...tables, ...codeBlocks]), theme);
 
   const html = parseMarkdown(afterBlockquotes);
 

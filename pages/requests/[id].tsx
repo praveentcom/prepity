@@ -46,6 +46,7 @@ import {
 import { IconToggle } from '@/components/ui/icon-toggle';
 import { Markdown } from '@workspace/ui/components/markdown';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 
 /**
  * Maximum polling attempts
@@ -587,6 +588,46 @@ export default function RequestPage() {
   };
 
   /**
+   * toggleMarkForLater function for the RequestPage component
+   * @param questionId - The question id
+   * @param marked - The mark for later status
+   * @returns The toggleMarkForLater function
+   */
+  const toggleMarkForLater = async (
+    questionId: number,
+    marked: boolean
+  ) => {
+    setData((prev) => ({
+      ...prev,
+      questions: prev.questions.map((q) =>
+        q.id === questionId ? { ...q, isMarkedForLater: marked } : q
+      ),
+    }));
+
+    try {
+      const res = await fetch('/api/questions/mark-for-later', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ questionId, marked }),
+      });
+      if (!res.ok) {
+        throw new Error('Failed to update mark for later status');
+      }
+    } catch (error) {
+      setData((prev) => ({
+        ...prev,
+        questions: prev.questions.map((q) =>
+          q.id === questionId ? { ...q, isMarkedForLater: !marked } : q
+        ),
+      }));
+      console.error('Error toggling mark for later status:', error);
+      throw error;
+    }
+  };
+
+  /**
    * handleDeleteRequest function for the RequestPage component
    * @returns The handleDeleteRequest function
    */
@@ -766,11 +807,18 @@ export default function RequestPage() {
           >
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Answered questions are dimmed 👀</DialogTitle>
-                <DialogDescription>
-                  This makes it easier to identify the unanswered ones. Keep going!
-                </DialogDescription>
+                <DialogTitle>Answered questions are dimmed</DialogTitle>
               </DialogHeader>
+              <DialogDescription>
+                Once you answer the question, the question card is slightly dimmed
+                to make it easier to identify the unanswered ones.
+                <br />
+                <br />
+                <span className='hidden sm:inline'>
+                  A visual indicator is also shown in the progress summary to revisit
+                  the unanswered questions and continue from where you left off.
+                </span>
+              </DialogDescription>
               <DialogFooter>
                 <DialogClose asChild>
                   <Button>Got it!</Button>
@@ -786,7 +834,8 @@ export default function RequestPage() {
             {questions.map((question, index) => (
               <Card
                 key={`question-${question.id}`}
-                className={`transition-opacity duration-500 ease-in-out ${question.isAnswered ? 'opacity-60' : 'opacity-100'}`}
+                id={`question-${index + 1}`}
+                className={`transition-opacity duration-500 ease-in-out ${question.isAnswered ? 'opacity-75' : 'opacity-100'}`}
               >
                 <CardHeader>
                   <div className="flex flex-col gap-2">
@@ -983,8 +1032,17 @@ export default function RequestPage() {
                       })}
                     </div>
                     {!question.isAnswered && (
-                      <div className="flex gap-3 md:flex-row flex-col">
+                      <div className="flex gap-6 md:flex-row flex-col items-start md:items-end justify-between">
                         <HintDialog question={question} />
+                        <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors pb-0.5">
+                          <Checkbox
+                            checked={question.isMarkedForLater}
+                            onCheckedChange={(checked) =>
+                              toggleMarkForLater(question.id, checked === true)
+                            }
+                          />
+                          Mark for later
+                        </label>
                       </div>
                     )}
                   </div>
@@ -1035,20 +1093,57 @@ export default function RequestPage() {
                 </div>
               )}
               {questions.length > 0 ? (
-                <p className="text-muted-foreground">
-                  {questions.length} questions are generated for this practice,
-                  and you have correctly answered{' '}
-                  {
-                    questions.filter(
-                      (question) =>
-                        question.isAnswered &&
-                        question.correctOption === question.userAnswer
-                    ).length
-                  }{' '}
-                  of{' '}
-                  {questions.filter((question) => question.isAnswered).length}{' '}
-                  so far.
-                </p>
+                <div className="flex flex-col gap-4">
+                  <p className="text-muted-foreground">
+                    {questions.length} questions are generated for this practice,
+                    and you have correctly answered{' '}
+                    {
+                      questions.filter(
+                        (question) =>
+                          question.isAnswered &&
+                          question.correctOption === question.userAnswer
+                      ).length
+                    }{' '}
+                    of{' '}
+                    {questions.filter((question) => question.isAnswered).length}{' '}
+                    so far.
+                  </p>
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(32px,1fr))] gap-2">
+                    {questions.map((question, index) => {
+                      let stateClass = '';
+                      if (question.isAnswered) {
+                        if (question.correctOption === question.userAnswer) {
+                          stateClass = 'answer-correct dark:answer-correct-dark';
+                        } else {
+                          stateClass = 'answer-incorrect dark:answer-incorrect-dark';
+                        }
+                      } else if (question.isMarkedForLater) {
+                        stateClass = 'answer-marked dark:answer-marked-dark';
+                      }
+                      return (
+                        <button
+                          key={`progress-${question.id}`}
+                          onClick={() => {
+                            document.getElementById(`question-${index + 1}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          }}
+                          className={`size-8 rounded-md border flex items-center justify-center text-xs font-medium cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all ${stateClass}`}
+                        >
+                          {index + 1}
+                        </button>
+                      );
+                    })}
+                    {request.status === RequestStatus.PROCESSING && 
+                      Array.from({ length: request.initQuestionsCount - questions.length }).map((_, i) => (
+                        <div
+                          key={`pending-${i}`}
+                          className="size-8 rounded-md border flex items-center justify-center text-xs font-medium bg-muted"
+                        >
+                          <Loader2 className="size-3 animate-spin text-muted-foreground" />
+                        </div>
+                      ))
+                    }
+                  </div>
+                </div>
               ) : (
                 <p className="text-muted-foreground">
                   No questions generated yet.
