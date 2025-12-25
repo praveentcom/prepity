@@ -1223,7 +1223,7 @@ export default function RequestPage() {
                   placeholder="Write your notes, calculations, or rough work here..."
                   value={scribbleContent}
                   onChange={(e) => setScribbleContent(e.target.value)}
-                  className="min-h-[300px] resize-y"
+                  className="min-h-[200px] resize-y"
                 />
                 <p className="text-xs text-muted-foreground">
                   This is a rough work area. Content will be cleared when the tab is closed.
