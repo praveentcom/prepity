@@ -6,6 +6,7 @@ import Head from 'next/head';
 import { ClientLayout } from '@/components/layout/client-layout';
 import { RequestsProvider } from '@/lib/client/contexts/requests-context';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
+import Script from 'next/script';
 
 const fontSans = Google_Sans_Flex({
   subsets: ['latin'],
@@ -49,6 +50,18 @@ function PrepityApp({ Component, pageProps }: AppProps) {
           </ClientLayout>
         </RequestsProvider>
         <Toaster />
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=G-ZWWNB7WYKX`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-ZWWNB7WYKX');
+          `}
+        </Script>
       </main>
     </NextThemesProvider>
   );
