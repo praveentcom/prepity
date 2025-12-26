@@ -30,6 +30,7 @@ export default function Document() {
         />
         <meta name="twitter:image" content="/cover-image.png" />
         <meta name="apple-mobile-web-app-title" content="Prepity" />
+        <meta name="theme-color" content="#D77757" />
       </Head>
       <body className="bg-muted font-sans antialiased min-h-screen flex flex-col max-w-full overflow-x-hidden">
         <Main />
