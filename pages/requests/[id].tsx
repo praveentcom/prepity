@@ -1161,7 +1161,6 @@ export default function RequestPage() {
                             </HoverCardContent>
                           </HoverCard>
                         )}
-                        <Separator orientation="vertical" className='bg-muted-foreground/60' />
                         <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors">
                           <Checkbox
                             checked={question.isMarkedForLater}
