@@ -28,8 +28,13 @@ export default async function handler(
       return res.status(400).json({ message: 'Request ID is required' });
     }
 
+    const parsedId = parseInt(requestId, 10);
+    if (isNaN(parsedId)) {
+      return res.status(400).json({ message: 'Invalid Request ID' });
+    }
+
     const request = await prisma.request.findUnique({
-      where: { id: parseInt(requestId) },
+      where: { id: parsedId },
     });
 
     if (!request) {

@@ -20,9 +20,16 @@ export default async function handler(
   }
 
   try {
-    const { page = 1, limit = 10 } = req.query;
+    const { page = '1', limit = '10' } = req.query;
     const pageNumber = parseInt(page as string, 10);
     const limitNumber = parseInt(limit as string, 10);
+
+    if (isNaN(pageNumber) || pageNumber < 1) {
+      return res.status(400).json({ message: 'Invalid page number' });
+    }
+    if (isNaN(limitNumber) || limitNumber < 1 || limitNumber > 100) {
+      return res.status(400).json({ message: 'Invalid limit (must be 1-100)' });
+    }
 
     const requests = await prisma.request.findMany({
       skip: (pageNumber - 1) * limitNumber,

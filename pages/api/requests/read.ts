@@ -27,9 +27,17 @@ export default async function handler(
         .json({ message: 'Request ID or slug is required' });
     }
 
+    let parsedId: number | undefined;
+    if (id) {
+      parsedId = parseInt(id as string, 10);
+      if (isNaN(parsedId)) {
+        return res.status(400).json({ message: 'Invalid Request ID' });
+      }
+    }
+
     const request = await prisma.request.findFirst({
-      where: id
-        ? { id: parseInt(id as string) }
+      where: parsedId
+        ? { id: parsedId }
         : { requestSlug: requestSlug as string },
     });
 

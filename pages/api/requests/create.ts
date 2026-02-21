@@ -18,7 +18,7 @@ const createRequestSchema = z.object({
     .min(1, 'Focus area is required')
     .max(200, 'Focus area must not exceed 200 characters'),
   difficulty: z.nativeEnum(Difficulty).default('MEDIUM'),
-  initQuestionsCount: z.number().min(1).max(50).default(10),
+  initQuestionsCount: z.number().int().min(1).max(50).default(10),
   requestSlug: z.string().uuid(),
   fileUri: z.string().optional(),
   mimeType: z.string().optional(),
