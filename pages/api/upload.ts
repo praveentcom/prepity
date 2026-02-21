@@ -32,6 +32,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
+    const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+    if (uploadedFile.size > MAX_FILE_SIZE) {
+      return res.status(400).json({ message: 'File size must not exceed 20MB' });
+    }
+
+    const ALLOWED_MIME_TYPES = ['application/pdf'];
+    const fileMimeType = uploadedFile.mimetype || '';
+    if (!ALLOWED_MIME_TYPES.includes(fileMimeType)) {
+      return res.status(400).json({ message: 'Only PDF files are allowed' });
+    }
+
     const fileBuffer = fs.readFileSync(uploadedFile.filepath);
     const fileBlob = new Blob([fileBuffer], { type: uploadedFile.mimetype || 'application/pdf' });
 

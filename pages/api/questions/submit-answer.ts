@@ -29,6 +29,12 @@ export default async function handler(
       return res.status(400).json({ message: 'Answer ID is required' });
     }
 
+    if (typeof answerId !== 'number' || answerId < 1 || answerId > 4) {
+      return res
+        .status(400)
+        .json({ message: 'Answer ID must be a number between 1 and 4' });
+    }
+
     const question = await prisma.question.findUnique({
       where: { id: questionId },
     });

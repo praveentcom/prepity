@@ -649,10 +649,10 @@ export const Markdown = React.memo(({ content, theme = 'vs', className, useLatex
 
     const sanitizeConfig = {
       ALLOWED_TAGS: [
-        'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'strong', 'em', 'del', 'code', 'pre', 'ul', 'ol', 'li', 'hr', 'a', 'img', 'div', 'span', 'sup', 'kbd', 'svg', 'head', 'body', 'script', 'path', 'polyline',
+        'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'strong', 'em', 'del', 'code', 'pre', 'ul', 'ol', 'li', 'hr', 'a', 'img', 'div', 'span', 'sup', 'kbd', 'svg', 'path', 'polyline',
       ],
       ALLOWED_ATTR: [
-        'href', 'target', 'rel', 'class', 'src', 'alt', 'id', 'defer', 'async', 'type', 'viewBox', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'd', 'points',
+        'href', 'target', 'rel', 'class', 'src', 'alt', 'id', 'viewBox', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'd', 'points',
       ],
       ALLOWED_URI_REGEXP:
         /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,

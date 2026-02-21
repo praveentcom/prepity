@@ -531,16 +531,20 @@ export default function RequestPage() {
         throw new Error('Failed to update star status');
       }
 
-      const storedRequests = localStorage.getItem('requests');
-      if (storedRequests) {
-        const requests = JSON.parse(storedRequests);
-        const updatedRequests = requests.map((r: Request) =>
-          r.requestSlug === request.requestSlug
-            ? { ...r, isStarred: newState }
-            : r
-        );
-        localStorage.setItem('requests', JSON.stringify(updatedRequests));
-        window.dispatchEvent(new Event('requests-updated'));
+      try {
+        const storedRequests = localStorage.getItem('requests');
+        if (storedRequests) {
+          const requests = JSON.parse(storedRequests);
+          const updatedRequests = requests.map((r: Request) =>
+            r.requestSlug === request.requestSlug
+              ? { ...r, isStarred: newState }
+              : r
+          );
+          localStorage.setItem('requests', JSON.stringify(updatedRequests));
+          window.dispatchEvent(new Event('requests-updated'));
+        }
+      } catch (e) {
+        console.error('Error updating localStorage:', e);
       }
     } catch (error) {
       setData((prev) => ({
@@ -550,7 +554,6 @@ export default function RequestPage() {
           : null,
       }));
       console.error('Error toggling star status:', error);
-      throw error;
     }
   };
 
@@ -590,7 +593,6 @@ export default function RequestPage() {
         ),
       }));
       console.error('Error toggling question star status:', error);
-      throw error;
     }
   };
 
@@ -630,7 +632,6 @@ export default function RequestPage() {
         ),
       }));
       console.error('Error toggling mark for later status:', error);
-      throw error;
     }
   };
 
@@ -644,13 +645,17 @@ export default function RequestPage() {
     try {
       const success = await deleteRequest(request.requestSlug);
       if (success) {
-        const storedRequests = localStorage.getItem('requests');
-        if (storedRequests) {
-          const requests = JSON.parse(storedRequests);
-          const updatedRequests = requests.filter(
-            (r: Request) => r.requestSlug !== request.requestSlug
-          );
-          localStorage.setItem('requests', JSON.stringify(updatedRequests));
+        try {
+          const storedRequests = localStorage.getItem('requests');
+          if (storedRequests) {
+            const requests = JSON.parse(storedRequests);
+            const updatedRequests = requests.filter(
+              (r: Request) => r.requestSlug !== request.requestSlug
+            );
+            localStorage.setItem('requests', JSON.stringify(updatedRequests));
+          }
+        } catch (e) {
+          console.error('Error updating localStorage:', e);
         }
 
         toast.success('Request deleted', {
